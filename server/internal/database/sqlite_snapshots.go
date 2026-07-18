@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"sort"
 
 	"github.com/WorldOccupier/finny/server/internal/domain"
 )
@@ -35,19 +34,11 @@ func listSnapshots(ctx context.Context, q queryer) ([]domain.Snapshot, error) {
 		if err != nil {
 			return nil, err
 		}
-		values, err := assetValuesForSnapshot(ctx, q, snapshot.ID)
+		assets, err := snapshotAssetsForSnapshot(ctx, q, snapshot.ID)
 		if err != nil {
 			return nil, err
 		}
-		for _, assetValues := range values {
-			snapshot.AssetValues = append(snapshot.AssetValues, assetValues...)
-		}
-		sort.Slice(snapshot.AssetValues, func(left, right int) bool {
-			if snapshot.AssetValues[left].AssetID == snapshot.AssetValues[right].AssetID {
-				return snapshot.AssetValues[left].Type < snapshot.AssetValues[right].Type
-			}
-			return snapshot.AssetValues[left].AssetID < snapshot.AssetValues[right].AssetID
-		})
+		snapshot.Assets = assets
 		snapshot.Totals, err = totalsForSnapshot(ctx, q, snapshot.ID)
 		if err != nil {
 			return nil, err
@@ -86,10 +77,12 @@ func saveSnapshot(ctx context.Context, q queryer, snapshot domain.Snapshot) erro
 	if err != nil {
 		return fmt.Errorf("write snapshot %d: %w", snapshot.ID, err)
 	}
-	for _, value := range snapshot.AssetValues {
-		_, err = q.ExecContext(ctx, `INSERT INTO snapshot_asset_values (snapshot_id, asset_id, value_type, value) VALUES (?, ?, ?, ?)`, snapshot.ID, value.AssetID, value.Type, value.Value.String())
-		if err != nil {
-			return fmt.Errorf("write snapshot %d asset value: %w", snapshot.ID, err)
+	for _, asset := range snapshot.Assets {
+		for _, value := range asset.Values {
+			_, err = q.ExecContext(ctx, `INSERT INTO snapshot_asset_values (snapshot_id, asset_id, value_type, value) VALUES (?, ?, ?, ?)`, snapshot.ID, asset.ID, value.Type, value.Value.String())
+			if err != nil {
+				return fmt.Errorf("write snapshot %d asset value: %w", snapshot.ID, err)
+			}
 		}
 	}
 	return saveTotals(ctx, q, snapshot.ID, snapshot.Totals)

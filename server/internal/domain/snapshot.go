@@ -9,7 +9,7 @@ type Snapshot struct {
 	ID          int64           `json:"id"`
 	CommittedAt time.Time       `json:"committedAt"`
 	FXRate      Decimal         `json:"fxRate"`
-	AssetValues []AssetValue    `json:"assetValues"`
+	Assets      []Asset         `json:"assets"`
 	Totals      DashboardTotals `json:"totals"`
 }
 
@@ -20,8 +20,8 @@ func (s Snapshot) Validate() error {
 	if s.FXRate.IsNegative() {
 		return fmt.Errorf("snapshot FX rate must not be negative")
 	}
-	for _, value := range s.AssetValues {
-		if err := value.Validate(); err != nil {
+	for _, asset := range s.Assets {
+		if err := asset.Validate(); err != nil {
 			return err
 		}
 	}

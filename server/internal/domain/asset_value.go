@@ -3,9 +3,8 @@ package domain
 import "fmt"
 
 type AssetValue struct {
-	AssetID int64     `json:"assetId,omitempty"`
-	Type    ValueType `json:"type"`
-	Value   Decimal   `json:"value"`
+	Type  ValueType `json:"type"`
+	Value Decimal   `json:"value"`
 }
 
 func (v AssetValue) Validate() error {

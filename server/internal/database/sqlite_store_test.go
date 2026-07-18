@@ -32,19 +32,16 @@ func TestStorePersistsDashboardRecords(t *testing.T) {
 	dashboard := domain.Dashboard{
 		Revision: 3,
 		Assets: []domain.Asset{{
-			ID:   1,
-			Name: "Savings",
-			Values: []domain.AssetValue{
-				{AssetID: 1, Type: domain.UK_GBP, Value: value},
-				{AssetID: 1, Type: domain.INDIA_INR, Value: indiaValue},
-			},
+			ID:     1,
+			Name:   "Savings",
+			Values: []domain.AssetValue{{Type: domain.UK_GBP, Value: value}, {Type: domain.INDIA_INR, Value: indiaValue}},
 		}},
 		CurrentFXRate: value,
 		History: []domain.Snapshot{{
 			ID:          1,
 			CommittedAt: snapshotTime,
 			FXRate:      value,
-			AssetValues: []domain.AssetValue{{AssetID: 1, Type: domain.UK_GBP, Value: value}, {AssetID: 1, Type: domain.INDIA_INR, Value: indiaValue}},
+			Assets:      []domain.Asset{{ID: 1, Name: "Savings", Values: []domain.AssetValue{{Type: domain.UK_GBP, Value: value}, {Type: domain.INDIA_INR, Value: indiaValue}}}},
 			Totals: domain.DashboardTotals{
 				Country:  []domain.TotalValue{{Type: domain.UK_GBP, Value: value}, {Type: domain.INDIA_INR, Value: indiaValue}},
 				Combined: []domain.CombinedTotal{{Currency: domain.CURRENCY_GBP, Value: value}, {Currency: domain.CURRENCY_INR, Value: indiaValue}},
@@ -64,7 +61,7 @@ func TestStorePersistsDashboardRecords(t *testing.T) {
 	if loaded.Revision != 3 || len(loaded.Assets) != 1 || len(loaded.History) != 1 || len(loaded.SpendingLimits) != 1 {
 		t.Fatalf("loaded dashboard = %+v", loaded)
 	}
-	if len(loaded.Assets[0].Values) != 2 || loaded.Assets[0].Values[0].AssetID != 1 {
+	if len(loaded.Assets[0].Values) != 2 || len(loaded.History[0].Assets) != 1 || loaded.History[0].Assets[0].ID != 1 {
 		t.Fatalf("loaded asset values = %+v", loaded.Assets[0].Values)
 	}
 	if loaded.Income.UserOneGBP.String() != "100.25" || loaded.Income.UserTwoGBP.String() != "5000" {
@@ -86,7 +83,7 @@ func TestHistoricalValuesRemainAfterAssetRemovalFromCurrentTemplate(t *testing.T
 		ID:          1,
 		CommittedAt: time.Date(2026, time.January, 1, 12, 0, 0, 0, domain.LondonLocation()),
 		FXRate:      value,
-		AssetValues: []domain.AssetValue{{AssetID: 1, Type: domain.UK_GBP, Value: value}},
+		Assets:      []domain.Asset{{ID: 1, Name: "Old savings", Values: []domain.AssetValue{{Type: domain.UK_GBP, Value: value}}}},
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -101,7 +98,7 @@ func TestHistoricalValuesRemainAfterAssetRemovalFromCurrentTemplate(t *testing.T
 	if len(loaded.Assets) != 0 {
 		t.Fatalf("removed asset still current: %+v", loaded.Assets)
 	}
-	if len(loaded.History) != 1 || len(loaded.History[0].AssetValues) != 1 {
+	if len(loaded.History) != 1 || len(loaded.History[0].Assets) != 1 {
 		t.Fatalf("historical asset value was lost: %+v", loaded.History)
 	}
 }
@@ -147,7 +144,7 @@ func TestSaveDashboardRollsBackOnPersistenceFailure(t *testing.T) {
 			ID:          1,
 			CommittedAt: time.Date(2026, time.January, 1, 12, 0, 0, 0, domain.LondonLocation()),
 			FXRate:      value,
-			AssetValues: []domain.AssetValue{{AssetID: 999, Type: domain.UK_GBP, Value: value}},
+			Assets:      []domain.Asset{{ID: 999, Name: "Missing", Values: []domain.AssetValue{{Type: domain.UK_GBP, Value: value}}}},
 		}},
 	}
 	if err := store.SaveDashboard(context.Background(), dashboard); err == nil {

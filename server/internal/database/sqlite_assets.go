@@ -97,10 +97,42 @@ func assetValuesForSnapshot(ctx context.Context, q queryer, snapshotID int64) (m
 		if err != nil {
 			return nil, err
 		}
-		values[assetID] = append(values[assetID], domain.AssetValue{AssetID: assetID, Type: domain.ValueType(valueType), Value: value})
+		values[assetID] = append(values[assetID], domain.AssetValue{Type: domain.ValueType(valueType), Value: value})
 	}
 	if err = rows.Err(); err != nil {
 		return nil, fmt.Errorf("iterate snapshot asset values: %w", err)
 	}
 	return values, nil
+}
+
+func snapshotAssetsForSnapshot(ctx context.Context, q queryer, snapshotID int64) ([]domain.Asset, error) {
+	values, err := assetValuesForSnapshot(ctx, q, snapshotID)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := q.QueryContext(ctx, `
+		SELECT DISTINCT assets.id, assets.name
+		FROM assets
+		JOIN snapshot_asset_values ON snapshot_asset_values.asset_id = assets.id
+		WHERE snapshot_asset_values.snapshot_id = ?
+		ORDER BY assets.id
+	`, snapshotID)
+	if err != nil {
+		return nil, fmt.Errorf("list snapshot assets: %w", err)
+	}
+	defer rows.Close()
+	assets := make([]domain.Asset, 0, len(values))
+	for rows.Next() {
+		var asset domain.Asset
+		err = rows.Scan(&asset.ID, &asset.Name)
+		if err != nil {
+			return nil, fmt.Errorf("scan snapshot asset: %w", err)
+		}
+		asset.Values = values[asset.ID]
+		assets = append(assets, asset)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate snapshot assets: %w", err)
+	}
+	return assets, nil
 }
