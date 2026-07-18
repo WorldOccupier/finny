@@ -147,21 +147,21 @@ This is the staged implementation plan for Finny. Complete phases in order and c
 
 ## Phase 9 — POST dashboard endpoint
 
-- [ ] Implement request decoding.
-- [ ] Validate `Idempotency-Key`.
-- [ ] Check the submitted revision.
-- [ ] Reject stale revisions with `409 Conflict`.
-- [ ] Validate the complete editable graph.
-- [ ] Invoke the atomic save operation.
-- [ ] Store the committed idempotency result.
-- [ ] Return the complete committed dashboard.
-- [ ] Test valid saves.
-- [ ] Test stale revisions.
-- [ ] Test idempotent retries.
-- [ ] Test idempotency-key reuse with a different body.
-- [ ] Test rollback on invalid data.
-- [ ] Test new and removed assets.
-- [ ] Review concurrent-save behavior.
+- [x] Implement request decoding.
+- [x] Validate `Idempotency-Key`.
+- [x] Check the submitted revision.
+- [x] Reject stale revisions with `409 Conflict`.
+- [x] Validate the complete editable graph.
+- [x] Invoke the atomic save operation.
+- [x] Store the committed idempotency result.
+- [x] Return the complete committed dashboard.
+- [x] Test valid saves.
+- [x] Test stale revisions.
+- [x] Test idempotent retries.
+- [x] Test idempotency-key reuse with a different body.
+- [x] Test rollback on invalid data.
+- [x] Test new and removed assets.
+- [x] Review concurrent-save behavior.
 
 ## Phase 10 — Read-only dashboard UI
 

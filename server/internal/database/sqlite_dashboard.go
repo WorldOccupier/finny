@@ -12,7 +12,7 @@ import (
 type Store interface {
 	LoadDashboard(context.Context) (domain.Dashboard, error)
 	SaveDashboard(context.Context, domain.Dashboard) error
-	SaveDashboardSnapshot(context.Context, DashboardSnapshotSave) error
+	SaveDashboardSnapshot(context.Context, DashboardSnapshotSave) (DashboardSnapshotCommit, error)
 	GetRevision(context.Context) (int64, error)
 	SetRevision(context.Context, int64) error
 	GetCurrentFX(context.Context) (domain.Decimal, error)

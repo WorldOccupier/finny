@@ -2,6 +2,7 @@ package snapshot
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -22,6 +23,21 @@ type Service struct {
 	now   func() time.Time
 }
 
+type ValidationError struct{ Err error }
+
+func (e *ValidationError) Error() string { return e.Err.Error() }
+func (e *ValidationError) Unwrap() error { return e.Err }
+
+func IsValidationError(err error) bool {
+	var validationErr *ValidationError
+	return errors.As(err, &validationErr)
+}
+
+type PreparedSave struct {
+	Dashboard domain.Dashboard
+	Save      database.DashboardSnapshotSave
+}
+
 func NewService(store database.Store, now func() time.Time) *Service {
 	if now == nil {
 		now = time.Now
@@ -30,29 +46,45 @@ func NewService(store database.Store, now func() time.Time) *Service {
 }
 
 func (s *Service) Save(ctx context.Context, input SnapshotInput) (domain.Dashboard, error) {
+	prepared, err := s.Prepare(ctx, input)
+	if err != nil {
+		return domain.Dashboard{}, err
+	}
+	_, err = s.store.SaveDashboardSnapshot(ctx, prepared.Save)
+	if err != nil {
+		return domain.Dashboard{}, fmt.Errorf("save dashboard snapshot: %w", err)
+	}
+	result, err := s.store.LoadDashboard(ctx)
+	if err != nil {
+		return domain.Dashboard{}, fmt.Errorf("load committed dashboard: %w", err)
+	}
+	return result, nil
+}
+
+func (s *Service) Prepare(ctx context.Context, input SnapshotInput) (PreparedSave, error) {
 	current, err := s.store.LoadDashboard(ctx)
 	if err != nil {
-		return domain.Dashboard{}, fmt.Errorf("load current dashboard: %w", err)
+		return PreparedSave{}, fmt.Errorf("load current dashboard: %w", err)
 	}
 	err = validateInput(input)
 	if err != nil {
-		return domain.Dashboard{}, err
+		return PreparedSave{}, &ValidationError{Err: err}
 	}
 	assets, err := resolveAssets(current, input.Assets)
 	if err != nil {
-		return domain.Dashboard{}, err
+		return PreparedSave{}, &ValidationError{Err: err}
 	}
 	totals, err := CalculateTotals(assets, input.FXRate)
 	if err != nil {
-		return domain.Dashboard{}, err
+		return PreparedSave{}, &ValidationError{Err: err}
 	}
 	committedAt := s.now().In(domain.LondonLocation())
 	if committedAt.IsZero() {
-		return domain.Dashboard{}, fmt.Errorf("snapshot commit time must be set")
+		return PreparedSave{}, &ValidationError{Err: fmt.Errorf("snapshot commit time must be set")}
 	}
 	for _, previous := range current.History {
 		if previous.CommittedAt.Equal(committedAt) {
-			return domain.Dashboard{}, fmt.Errorf("snapshot commit time must be unique")
+			return PreparedSave{}, &ValidationError{Err: fmt.Errorf("snapshot commit time must be unique")}
 		}
 	}
 
@@ -64,21 +96,23 @@ func (s *Service) Save(ctx context.Context, input SnapshotInput) (domain.Dashboa
 		Totals:      totals,
 	}
 	save := database.DashboardSnapshotSave{
-		Assets:         assets,
-		Snapshot:       snapshot,
-		SpendingLimits: input.SpendingLimits,
-		Income:         input.Income,
-		CurrentFXRate:  input.FXRate,
-		Revision:       current.Revision,
+		Assets:           assets,
+		Snapshot:         snapshot,
+		SpendingLimits:   input.SpendingLimits,
+		Income:           input.Income,
+		CurrentFXRate:    input.FXRate,
+		ExpectedRevision: current.Revision,
+		Revision:         current.Revision + 1,
 	}
-	if err := s.store.SaveDashboardSnapshot(ctx, save); err != nil {
-		return domain.Dashboard{}, fmt.Errorf("save dashboard snapshot: %w", err)
-	}
-	result, err := s.store.LoadDashboard(ctx)
-	if err != nil {
-		return domain.Dashboard{}, fmt.Errorf("load committed dashboard: %w", err)
-	}
-	return result, nil
+	committed := current
+	committed.Revision = save.Revision
+	committed.Assets = assets
+	committed.CurrentFXRate = input.FXRate
+	committed.CurrentTotals = totals
+	committed.SpendingLimits = input.SpendingLimits
+	committed.Income = input.Income
+	committed.History = append(append([]domain.Snapshot(nil), current.History...), snapshot)
+	return PreparedSave{Dashboard: committed, Save: save}, nil
 }
 
 func validateInput(input SnapshotInput) error {

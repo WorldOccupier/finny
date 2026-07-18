@@ -137,3 +137,7 @@ func ValidateIdempotencyKey(key string) error {
 	}
 	return nil
 }
+
+func NormalizeIdempotencyKey(key string) string {
+	return strings.TrimSpace(key)
+}
