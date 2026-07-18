@@ -40,23 +40,49 @@ type DashboardRequest struct {
 }
 
 func NewDashboardResponse(dashboard domain.Dashboard) DashboardResponse {
+	assets := dashboard.Assets
+	if assets == nil {
+		assets = []domain.Asset{}
+	}
+	spendingLimits := dashboard.SpendingLimits
+	if spendingLimits == nil {
+		spendingLimits = []domain.SpendingLimit{}
+	}
+	currentTotals := dashboard.CurrentTotals
+	if currentTotals.Country == nil {
+		currentTotals.Country = []domain.TotalValue{}
+	}
+	if currentTotals.Combined == nil {
+		currentTotals.Combined = []domain.CombinedTotal{}
+	}
 	history := make([]SnapshotResponse, 0, len(dashboard.History))
 	for _, snapshot := range dashboard.History {
+		snapshotAssets := snapshot.Assets
+		if snapshotAssets == nil {
+			snapshotAssets = []domain.Asset{}
+		}
+		snapshotTotals := snapshot.Totals
+		if snapshotTotals.Country == nil {
+			snapshotTotals.Country = []domain.TotalValue{}
+		}
+		if snapshotTotals.Combined == nil {
+			snapshotTotals.Combined = []domain.CombinedTotal{}
+		}
 		history = append(history, SnapshotResponse{
 			ID:          snapshot.ID,
 			CommittedAt: domain.FormatLondonTimestamp(snapshot.CommittedAt),
 			FXRate:      snapshot.FXRate,
-			Assets:      snapshot.Assets,
-			Totals:      snapshot.Totals,
+			Assets:      snapshotAssets,
+			Totals:      snapshotTotals,
 		})
 	}
 	return DashboardResponse{
 		Revision:       dashboard.Revision,
-		Assets:         dashboard.Assets,
+		Assets:         assets,
 		CurrentFXRate:  dashboard.CurrentFXRate,
-		CurrentTotals:  dashboard.CurrentTotals,
+		CurrentTotals:  currentTotals,
 		History:        history,
-		SpendingLimits: dashboard.SpendingLimits,
+		SpendingLimits: spendingLimits,
 		Income:         dashboard.Income,
 	}
 }

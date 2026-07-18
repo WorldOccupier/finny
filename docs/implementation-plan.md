@@ -129,21 +129,21 @@ This is the staged implementation plan for Finny. Complete phases in order and c
 
 ## Phase 8 — GET dashboard endpoint
 
-- [ ] Implement `GET /api/dashboard`.
-- [ ] Load the complete dashboard read model.
-- [ ] Include current UK and India values.
-- [ ] Include combined GBP and INR totals.
-- [ ] Include current FX and revision.
-- [ ] Include net-worth history.
-- [ ] Include spending limits and income.
-- [ ] Serialize decimals as strings.
-- [ ] Serialize timestamps with the documented timezone behavior.
-- [ ] Map database failures to safe errors.
-- [ ] Test empty-dashboard responses.
-- [ ] Test populated-dashboard responses.
-- [ ] Test history ordering.
-- [ ] Test current total calculations.
-- [ ] Review the JSON response manually.
+- [x] Implement `GET /api/dashboard`.
+- [x] Load the complete dashboard read model.
+- [x] Include current UK and India values.
+- [x] Include combined GBP and INR totals.
+- [x] Include current FX and revision.
+- [x] Include net-worth history.
+- [x] Include spending limits and income.
+- [x] Serialize decimals as strings.
+- [x] Serialize timestamps with the documented timezone behavior.
+- [x] Map database failures to safe errors.
+- [x] Test empty-dashboard responses.
+- [x] Test populated-dashboard responses.
+- [x] Test history ordering.
+- [x] Test current total calculations.
+- [x] Review the JSON response manually.
 
 ## Phase 9 — POST dashboard endpoint
 

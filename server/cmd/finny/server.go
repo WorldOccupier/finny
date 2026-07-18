@@ -11,6 +11,9 @@ import (
 	"strconv"
 	"syscall"
 	"time"
+
+	"github.com/WorldOccupier/finny/server/internal/api"
+	"github.com/WorldOccupier/finny/server/internal/database"
 )
 
 const (
@@ -20,6 +23,8 @@ const (
 	JSON_CONTENT_TYPE = "application/json"
 	HEALTH_STATUS     = "ok"
 	SHUTDOWN_TIMEOUT  = 5 * time.Second
+	FINNY_DB_PATH_ENV = "FINNY_DB_PATH"
+	DEFAULT_DB_PATH   = "finny.db"
 )
 
 type server struct {
@@ -28,7 +33,17 @@ type server struct {
 
 func Run() {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-	httpServer := newServer(serverPort(), logger)
+	db, err := database.Open(context.Background(), databasePath())
+	if err != nil {
+		logger.Error("database open failed", "error", err)
+		return
+	}
+	defer db.Close()
+	if err := database.Migrate(context.Background(), db); err != nil {
+		logger.Error("database migration failed", "error", err)
+		return
+	}
+	httpServer := newServerWithStore(serverPort(), logger, database.NewSQLiteStore(db))
 
 	shutdownContext, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
@@ -45,7 +60,7 @@ func Run() {
 	}()
 
 	logger.Info("starting server", "address", httpServer.Addr)
-	err := httpServer.ListenAndServe()
+	err = httpServer.ListenAndServe()
 
 	if err != nil && !errors.Is(err, http.ErrServerClosed) {
 		logger.Error("server stopped unexpectedly", "error", err)
@@ -54,15 +69,28 @@ func Run() {
 }
 
 func newServer(port int, logger *slog.Logger) *http.Server {
+	return newServerWithStore(port, logger, nil)
+}
+
+func newServerWithStore(port int, logger *slog.Logger, store database.Store) *http.Server {
 	app := &server{logger: logger}
 	mux := http.NewServeMux()
 	mux.HandleFunc(HEALTH_ROUTE, app.health)
+	mux.Handle(api.DASHBOARD_ROUTE, api.NewDashboardHandler(store, logger))
 
 	return &http.Server{
 		Addr:              ":" + strconv.Itoa(port),
 		Handler:           app.loggingMiddleware(mux),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
+}
+
+func databasePath() string {
+	value := os.Getenv(FINNY_DB_PATH_ENV)
+	if value == "" {
+		return DEFAULT_DB_PATH
+	}
+	return value
 }
 
 func serverPort() int {
