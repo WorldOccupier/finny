@@ -36,6 +36,7 @@ This file records decisions that should remain stable across implementation sess
 - The server assigns the snapshot commit timestamp.
 - User-facing time handling uses `Europe/London`.
 - Historical totals use the FX rate saved with their snapshot.
+- FX-derived combined totals use fixed 18-decimal-place division for deterministic results.
 - The current dashboard uses the latest native values and the current FX rate.
 
 ### Dashboard API
@@ -58,3 +59,4 @@ This file records decisions that should remain stable across implementation sess
 ## Change log
 
 - 2026-07-18: Selected `modernc.org/sqlite` for the SQLite driver to keep Docker and CI builds CGO-free.
+- 2026-07-18: Snapshot calculations use `shopspring/decimal` with fixed 18-place division for deterministic FX conversions.
