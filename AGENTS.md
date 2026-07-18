@@ -30,6 +30,7 @@ The implementation plan is the source of truth for phase order and progress. The
 - Keep Vite and the Go API as separate processes.
 - Name constants using `CAPITAL_SNAKE_CASE` everywhere, for example `DEFAULT_PORT`.
 - Name string constants using `CAPITAL_SNAKE_CASE` as well, for example `HEALTH_ROUTE` and `JSON_CONTENT_TYPE`.
+- Put `if err != nil` checks on the line immediately after the statement that produces `err`; do not combine the statement and check on one line.
 
 ## Progress updates
 

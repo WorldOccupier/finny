@@ -17,6 +17,7 @@ This file records decisions that should remain stable across implementation sess
 ### Persistence
 
 - SQLite is the initial data source.
+- The Go SQLite driver is `modernc.org/sqlite` so the server remains CGO-free in Docker and CI.
 - Persistence is isolated in the `database` package.
 - One domain-oriented persistence interface is sufficient for the POC.
 - Financial values use `shopspring/decimal` in Go.
@@ -56,4 +57,4 @@ This file records decisions that should remain stable across implementation sess
 
 ## Change log
 
-No implementation decisions have been changed since this file was created.
+- 2026-07-18: Selected `modernc.org/sqlite` for the SQLite driver to keep Docker and CI builds CGO-free.

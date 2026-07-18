@@ -49,23 +49,23 @@ This is the staged implementation plan for Finny. Complete phases in order and c
 
 ## Phase 4 — SQLite schema and migrations
 
-- [ ] Create the `server/internal/database` package.
-- [ ] Add SQLite connection setup.
-- [ ] Add migration execution.
-- [ ] Add asset storage.
-- [ ] Add snapshot storage.
-- [ ] Add snapshot asset-value storage.
-- [ ] Add snapshot-total storage.
-- [ ] Add spending-limit storage.
-- [ ] Add income storage.
-- [ ] Add current-FX storage.
-- [ ] Add dashboard-revision storage.
-- [ ] Add idempotency-key storage.
-- [ ] Add foreign keys and required indexes.
-- [ ] Test initialization from an empty database.
-- [ ] Test ordered and repeatable migrations.
-- [ ] Test decimal round-tripping through SQLite `NUMERIC` columns.
-- [ ] Review the schema and migration SQL.
+- [x] Create the `server/internal/database` package.
+- [x] Add SQLite connection setup.
+- [x] Add migration execution.
+- [x] Add asset storage.
+- [x] Add snapshot storage.
+- [x] Add snapshot asset-value storage.
+- [x] Add snapshot-total storage.
+- [x] Add spending-limit storage.
+- [x] Add income storage.
+- [x] Add current-FX storage.
+- [x] Add dashboard-revision storage.
+- [x] Add idempotency-key storage.
+- [x] Add foreign keys and required indexes.
+- [x] Test initialization from an empty database.
+- [x] Test ordered and repeatable migrations.
+- [x] Test decimal round-tripping through SQLite `NUMERIC` columns.
+- [x] Review the schema and migration SQL.
 
 ## Phase 5 — Persistence interface and SQLite adapter
 
