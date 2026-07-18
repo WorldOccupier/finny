@@ -5,6 +5,9 @@ import (
 	"database/sql"
 	"testing"
 	"testing/fstest"
+	"time"
+
+	"github.com/WorldOccupier/finny/server/internal/domain"
 )
 
 func TestOpenAndMigrateEmptyDatabase(t *testing.T) {
@@ -102,6 +105,51 @@ func TestForeignKeysAndHistoricalInactiveAssets(t *testing.T) {
 	}
 	if _, err := db.Exec(`INSERT INTO snapshot_asset_values (snapshot_id, asset_id, value_type, value) VALUES (1, 1, 'UKGBP', '100.50')`); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestSaveDashboardSnapshotRollsBackOnFailure(t *testing.T) {
+	db := openMigratedDatabase(t)
+	store := NewSQLiteStore(db)
+	value, err := domain.NewDecimal("100")
+	if err != nil {
+		t.Fatal(err)
+	}
+	fxRate, err := domain.NewDecimal("2")
+	if err != nil {
+		t.Fatal(err)
+	}
+	snapshot := domain.Snapshot{
+		ID:          1,
+		CommittedAt: time.Date(2026, time.January, 1, 12, 0, 0, 0, time.UTC),
+		FXRate:      fxRate,
+		Assets: []domain.Asset{{ID: 1, Name: "Savings", Values: []domain.AssetValue{
+			{Type: domain.UK_GBP, Value: value},
+			{Type: domain.INDIA_INR, Value: value},
+		}}},
+		Totals: domain.DashboardTotals{
+			Country:  []domain.TotalValue{{Type: domain.UK_GBP, Value: value}, {Type: domain.INDIA_INR, Value: value}},
+			Combined: []domain.CombinedTotal{{Currency: domain.CURRENCY_GBP, Value: value}, {Currency: domain.CURRENCY_INR, Value: value}},
+		},
+	}
+	err = store.SaveDashboardSnapshot(context.Background(), DashboardSnapshotSave{
+		Assets:         snapshot.Assets,
+		Snapshot:       snapshot,
+		SpendingLimits: []domain.SpendingLimit{{Key: "broken", Amount: value, Currency: domain.Currency("USD")}},
+		CurrentFXRate:  fxRate,
+	})
+	if err == nil {
+		t.Fatal("invalid aggregate save succeeded")
+	}
+	var assets, snapshots int
+	if err := db.QueryRow("SELECT COUNT(*) FROM assets").Scan(&assets); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.QueryRow("SELECT COUNT(*) FROM snapshots").Scan(&snapshots); err != nil {
+		t.Fatal(err)
+	}
+	if assets != 0 || snapshots != 0 {
+		t.Fatalf("rollback left assets=%d snapshots=%d", assets, snapshots)
 	}
 }
 

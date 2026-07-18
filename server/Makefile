@@ -2,6 +2,8 @@
 
 COMPOSE_FILE ?= ../docker-compose.yml
 COMPOSE := docker compose -f $(COMPOSE_FILE)
+export DOCKER_BUILDKIT := 1
+export COMPOSE_DOCKER_CLI_BUILD := 1
 
 build:
 	$(COMPOSE) run --rm server go build ./...

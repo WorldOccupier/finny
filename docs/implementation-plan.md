@@ -88,27 +88,27 @@ This is the staged implementation plan for Finny. Complete phases in order and c
 
 ## Phase 6 — Snapshot calculation and atomic save
 
-- [ ] Validate the first snapshot.
-- [ ] Implement carry-forward values.
-- [ ] Implement shared asset creation.
-- [ ] Implement removal from the current asset template.
-- [ ] Preserve removed assets in historical snapshots.
-- [ ] Validate UK and India currencies.
-- [ ] Calculate UK totals.
-- [ ] Calculate India totals.
-- [ ] Calculate combined GBP and INR totals.
-- [ ] Store snapshot FX values and historical totals.
-- [ ] Update current FX when a snapshot is saved.
-- [ ] Assign the server commit timestamp.
-- [ ] Execute the complete save in one transaction.
-- [ ] Test first-snapshot completeness.
-- [ ] Test carry-forward behavior.
-- [ ] Test new-asset validation.
-- [ ] Test historical preservation after removal.
-- [ ] Test frozen historical totals.
-- [ ] Test current-rate calculations.
-- [ ] Test rollback after validation or persistence failure.
-- [ ] Review calculation examples.
+- [x] Validate the first snapshot.
+- [x] Implement carry-forward values.
+- [x] Implement shared asset creation.
+- [x] Implement removal from the current asset template.
+- [x] Preserve removed assets in historical snapshots.
+- [x] Validate UK and India currencies.
+- [x] Calculate UK totals.
+- [x] Calculate India totals.
+- [x] Calculate combined GBP and INR totals.
+- [x] Store snapshot FX values and historical totals.
+- [x] Update current FX when a snapshot is saved.
+- [x] Assign the server commit timestamp.
+- [x] Execute the complete save in one transaction.
+- [x] Test first-snapshot completeness.
+- [x] Test carry-forward behavior.
+- [x] Test new-asset validation.
+- [x] Test historical preservation after removal.
+- [x] Test frozen historical totals.
+- [x] Test current-rate calculations.
+- [x] Test rollback after validation or persistence failure.
+- [x] Review calculation examples.
 
 ## Phase 7 — Dashboard API schema
 
