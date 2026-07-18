@@ -128,6 +128,10 @@ Errors use a consistent JSON shape:
 
 Initial error categories include invalid JSON, validation errors, invalid decimals or currencies, missing asset values, duplicate IDs, revision conflicts, idempotency conflicts, not-found errors, and internal errors.
 
+The schema package defines the exact JSON contract used by the handlers in later phases. `GET /api/dashboard` returns `revision`, active `assets`, `currentFxRate`, `currentTotals`, `history`, `spendingLimits`, and `income`. History entries contain numeric IDs, `committedAt` timestamps formatted with the `Europe/London` offset, the saved `fxRate`, native asset values, and frozen totals. `POST /api/dashboard` accepts the revision, numeric client-generated asset IDs beginning at `0`, current asset values, the submitted snapshot `fxRate`, spending limits, and GBP income totals; computed history and totals are not client-editable.
+
+All financial values are JSON strings. Asset values identify their country and currency through `UKGBP`/`GBP` and `INDIAINR`/`INR`; spending limits carry an explicit `GBP` or `INR` currency. The `Idempotency-Key` header is required for POST and accepts a trimmed value from 1 through 255 characters. Error bodies always use `{ "error": { "code": "...", "message": "..." } }`. Invalid request, validation, currency, decimal, asset-value, and idempotency-key errors use `400`; missing resources use `404`; revision and idempotency conflicts use `409`; unexpected failures use `500`.
+
 Bank transaction import and transaction categorization are intentionally outside the POC API.
 
 ## Planned domain rules
