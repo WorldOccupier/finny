@@ -1,14 +1,17 @@
 package api
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -127,7 +130,210 @@ func TestDashboardHandlerMapsStoreFailuresToSafeInternalError(t *testing.T) {
 	}
 }
 
+func TestDashboardHandlerPostSavesAndReplaysIdempotently(t *testing.T) {
+	store := testStore(t)
+	handler := NewDashboardHandler(store, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	body := []byte(`{"revision":0,"assets":[{"id":0,"name":"Savings","values":[{"type":"UKGBP","value":"100"},{"type":"INDIAINR","value":"5000"}]}],"fxRate":"100","spendingLimits":[],"income":{"userOneGBP":"0","userTwoGBP":"0"}}`)
+	request := httptest.NewRequest(http.MethodPost, "/api/dashboard", bytes.NewReader(body))
+	request.Header.Set(IDEMPOTENCY_KEY_HEADER, "save-1")
+	first := httptest.NewRecorder()
+	handler.ServeHTTP(first, request)
+	if first.Code != http.StatusOK {
+		t.Fatalf("first status = %d, body = %s", first.Code, first.Body)
+	}
+	var response DashboardResponse
+	if err := json.Unmarshal(first.Body.Bytes(), &response); err != nil {
+		t.Fatal(err)
+	}
+	if response.Revision != 1 || len(response.History) != 1 {
+		t.Fatalf("response = %+v", response)
+	}
+	retry := httptest.NewRecorder()
+	retryRequest := httptest.NewRequest(http.MethodPost, "/api/dashboard", bytes.NewReader(body))
+	retryRequest.Header.Set(IDEMPOTENCY_KEY_HEADER, "save-1")
+	handler.ServeHTTP(retry, retryRequest)
+	if retry.Code != http.StatusOK || retry.Body.String() != first.Body.String() {
+		t.Fatalf("retry status/body = %d/%s, want %d/%s", retry.Code, retry.Body, first.Code, first.Body)
+	}
+}
+
+func TestDashboardHandlerPostRejectsStaleRevisionAndKeyReuse(t *testing.T) {
+	store := testStore(t)
+	handler := NewDashboardHandler(store, slog.Default())
+	body := []byte(`{"revision":0,"assets":[],"fxRate":"1","spendingLimits":[],"income":{"userOneGBP":"0","userTwoGBP":"0"}}`)
+	first := httptest.NewRequest(http.MethodPost, "/api/dashboard", bytes.NewReader(body))
+	first.Header.Set(IDEMPOTENCY_KEY_HEADER, "save-2")
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, first)
+	if response.Code != http.StatusOK {
+		t.Fatalf("first status = %d, body = %s", response.Code, response.Body)
+	}
+	changed := []byte(`{"revision":0,"assets":[],"fxRate":"2","spendingLimits":[],"income":{"userOneGBP":"0","userTwoGBP":"0"}}`)
+	reuse := httptest.NewRequest(http.MethodPost, "/api/dashboard", bytes.NewReader(changed))
+	reuse.Header.Set(IDEMPOTENCY_KEY_HEADER, "save-2")
+	reuseResponse := httptest.NewRecorder()
+	handler.ServeHTTP(reuseResponse, reuse)
+	if reuseResponse.Code != http.StatusConflict {
+		t.Fatalf("reuse status = %d, want %d", reuseResponse.Code, http.StatusConflict)
+	}
+	stale := httptest.NewRequest(http.MethodPost, "/api/dashboard", bytes.NewReader(body))
+	stale.Header.Set(IDEMPOTENCY_KEY_HEADER, "save-3")
+	staleResponse := httptest.NewRecorder()
+	handler.ServeHTTP(staleResponse, stale)
+	if staleResponse.Code != http.StatusConflict {
+		t.Fatalf("stale status = %d, want %d", staleResponse.Code, http.StatusConflict)
+	}
+}
+
+func TestDashboardHandlerRejectsConcurrentSavesWithSameRevision(t *testing.T) {
+	store := testStore(t)
+	handler := NewDashboardHandler(store, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	body := []byte(`{"revision":0,"assets":[],"fxRate":"1","spendingLimits":[],"income":{"userOneGBP":"0","userTwoGBP":"0"}}`)
+	start := make(chan struct{})
+	responses := make(chan int, 2)
+	var wait sync.WaitGroup
+	for _, key := range []string{"concurrent-1", "concurrent-2"} {
+		wait.Add(1)
+		go func(key string) {
+			defer wait.Done()
+			<-start
+			request := httptest.NewRequest(http.MethodPost, DASHBOARD_ROUTE, bytes.NewReader(body))
+			request.Header.Set(IDEMPOTENCY_KEY_HEADER, key)
+			recorder := httptest.NewRecorder()
+			handler.ServeHTTP(recorder, request)
+			responses <- recorder.Code
+		}(key)
+	}
+	close(start)
+	wait.Wait()
+	close(responses)
+	var success, conflict int
+	for status := range responses {
+		switch status {
+		case http.StatusOK:
+			success++
+		case http.StatusConflict:
+			conflict++
+		default:
+			t.Fatalf("concurrent status = %d", status)
+		}
+	}
+	if success != 1 || conflict != 1 {
+		t.Fatalf("concurrent results = success %d, conflict %d", success, conflict)
+	}
+	dashboard, err := store.LoadDashboard(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if dashboard.Revision != 1 || len(dashboard.History) != 1 {
+		t.Fatalf("concurrent dashboard = revision %d, history %d", dashboard.Revision, len(dashboard.History))
+	}
+}
+
+func TestDashboardHandlerConcurrentSameKeyCommitsOnceAndReplays(t *testing.T) {
+	store := testStore(t)
+	handler := NewDashboardHandler(store, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	body := []byte(`{"revision":0,"assets":[],"fxRate":"1","spendingLimits":[],"income":{"userOneGBP":"0","userTwoGBP":"0"}}`)
+	start := make(chan struct{})
+	responses := make(chan string, 2)
+	var wait sync.WaitGroup
+	for range 2 {
+		wait.Add(1)
+		go func() {
+			defer wait.Done()
+			<-start
+			request := httptest.NewRequest(http.MethodPost, DASHBOARD_ROUTE, bytes.NewReader(body))
+			request.Header.Set(IDEMPOTENCY_KEY_HEADER, "concurrent-same-key")
+			recorder := httptest.NewRecorder()
+			handler.ServeHTTP(recorder, request)
+			if recorder.Code != http.StatusOK {
+				responses <- fmt.Sprintf("status %d: %s", recorder.Code, recorder.Body.String())
+				return
+			}
+			responses <- recorder.Body.String()
+		}()
+	}
+	close(start)
+	wait.Wait()
+	close(responses)
+	var bodies []string
+	for response := range responses {
+		bodies = append(bodies, response)
+	}
+	if len(bodies) != 2 || bodies[0] != bodies[1] {
+		t.Fatalf("same-key responses = %q", bodies)
+	}
+	dashboard, err := store.LoadDashboard(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if dashboard.Revision != 1 || len(dashboard.History) != 1 {
+		t.Fatalf("same-key dashboard = revision %d, history %d", dashboard.Revision, len(dashboard.History))
+	}
+}
+
+func TestDashboardHandlerIdempotencyFailureRollsBackDashboard(t *testing.T) {
+	db, err := database.Open(context.Background(), filepath.Join(t.TempDir(), "finny.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	if err := database.Migrate(context.Background(), db); err != nil {
+		t.Fatal(err)
+	}
+	_, err = db.Exec(`CREATE TRIGGER fail_idempotency_insert BEFORE INSERT ON idempotency_keys BEGIN SELECT RAISE(FAIL, 'idempotency unavailable'); END`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	store := database.NewSQLiteStore(db)
+	handler := NewDashboardHandler(store, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodPost, DASHBOARD_ROUTE, strings.NewReader(`{"revision":0,"assets":[],"fxRate":"1","spendingLimits":[],"income":{"userOneGBP":"0","userTwoGBP":"0"}}`))
+	request.Header.Set(IDEMPOTENCY_KEY_HEADER, "failure-1")
+	handler.ServeHTTP(recorder, request)
+	if recorder.Code != http.StatusInternalServerError {
+		t.Fatalf("status = %d, want %d", recorder.Code, http.StatusInternalServerError)
+	}
+	dashboard, err := store.LoadDashboard(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if dashboard.Revision != 0 || len(dashboard.History) != 0 {
+		t.Fatalf("failed save changed dashboard = revision %d, history %d", dashboard.Revision, len(dashboard.History))
+	}
+}
+
+func TestDashboardHandlerMapsPostStoreFailureToInternalError(t *testing.T) {
+	handler := NewDashboardHandler(failingSaveStore{Store: testStore(t)}, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodPost, DASHBOARD_ROUTE, strings.NewReader(`{"revision":0,"assets":[],"fxRate":"1","spendingLimits":[],"income":{"userOneGBP":"0","userTwoGBP":"0"}}`))
+	request.Header.Set(IDEMPOTENCY_KEY_HEADER, "failure-2")
+	handler.ServeHTTP(recorder, request)
+	if recorder.Code != http.StatusInternalServerError {
+		t.Fatalf("status = %d, want %d", recorder.Code, http.StatusInternalServerError)
+	}
+}
+
+func TestDashboardHandlerRejectsOversizedBody(t *testing.T) {
+	handler := NewDashboardHandler(testStore(t), slog.New(slog.NewTextHandler(io.Discard, nil)))
+	body := append([]byte(`{"revision":0,"assets":[],"fxRate":"1","spendingLimits":[],"income":{"userOneGBP":"0","userTwoGBP":"0"},"padding":"`), bytes.Repeat([]byte("x"), MAX_REQUEST_BODY)...)
+	body = append(body, []byte(`"}`)...)
+	request := httptest.NewRequest(http.MethodPost, DASHBOARD_ROUTE, bytes.NewReader(body))
+	request.Header.Set(IDEMPOTENCY_KEY_HEADER, "large-1")
+	recorder := httptest.NewRecorder()
+	handler.ServeHTTP(recorder, request)
+	if recorder.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want %d", recorder.Code, http.StatusBadRequest)
+	}
+}
+
 type failingStore struct{ database.Store }
+
+type failingSaveStore struct{ database.Store }
+
+func (f failingSaveStore) SaveDashboardSnapshot(context.Context, database.DashboardSnapshotSave) (database.DashboardSnapshotCommit, error) {
+	return database.DashboardSnapshotCommit{}, fmt.Errorf("database exploded")
+}
 
 func (failingStore) LoadDashboard(context.Context) (domain.Dashboard, error) {
 	return domain.Dashboard{}, &testError{"database exploded"}

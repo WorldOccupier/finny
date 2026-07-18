@@ -132,7 +132,7 @@ func TestSaveDashboardSnapshotRollsBackOnFailure(t *testing.T) {
 			Combined: []domain.CombinedTotal{{Currency: domain.CURRENCY_GBP, Value: value}, {Currency: domain.CURRENCY_INR, Value: value}},
 		},
 	}
-	err = store.SaveDashboardSnapshot(context.Background(), DashboardSnapshotSave{
+	_, err = store.SaveDashboardSnapshot(context.Background(), DashboardSnapshotSave{
 		Assets:         snapshot.Assets,
 		Snapshot:       snapshot,
 		SpendingLimits: []domain.SpendingLimit{{Key: "broken", Amount: value, Currency: domain.Currency("USD")}},

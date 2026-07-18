@@ -11,12 +11,19 @@ import (
 )
 
 var ErrNotFound = errors.New("database record not found")
+var ErrRevisionConflict = errors.New("dashboard revision conflict")
+var ErrIdempotencyConflict = errors.New("idempotency key conflict")
 
 type IdempotencyResult struct {
 	Key          string
 	RequestHash  string
 	ResponseJSON string
 	CreatedAt    time.Time
+}
+
+type DashboardSnapshotCommit struct {
+	Replayed    bool
+	Idempotency IdempotencyResult
 }
 
 type SQLiteStore struct{ db *sql.DB }
