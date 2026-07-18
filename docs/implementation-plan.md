@@ -16,19 +16,19 @@ This is the staged implementation plan for Finny. Complete phases in order and c
 
 ## Phase 2 — React/Vite foundation
 
-- [ ] Create `web/package.json`.
-- [ ] Create the web development Dockerfile.
-- [ ] Create the Vite React TypeScript entrypoint.
-- [ ] Add the `/` route.
-- [ ] Add the `/edit` route.
-- [ ] Add the Vite `/api` proxy to the Go server.
-- [ ] Add Docker Compose development services for `web` and `server`.
-- [ ] Mount source directories for development hot reload.
-- [ ] Add a host-mounted SQLite data volume.
-- [ ] Render a dashboard placeholder.
-- [ ] Render an edit placeholder.
-- [ ] Verify a frontend request can reach `/health` through the proxy between containers.
-- [ ] Review frontend tooling and routing.
+- [x] Create `web/package.json`.
+- [x] Create the web development Dockerfile.
+- [x] Create the Vite React TypeScript entrypoint.
+- [x] Add the `/` route.
+- [x] Add the `/edit` route.
+- [x] Add the Vite `/api` proxy to the Go server.
+- [x] Add Docker Compose development services for `web` and `server`.
+- [x] Mount source directories for development hot reload.
+- [x] Add a host-mounted SQLite data volume.
+- [x] Render a dashboard placeholder.
+- [x] Render an edit placeholder.
+- [x] Verify a frontend request can reach `/health` through the proxy between containers.
+- [x] Review frontend tooling and routing.
 
 ## Phase 3 — Domain types and decimal conventions
 
