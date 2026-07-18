@@ -36,14 +36,14 @@ Frontend code should be organized primarily by feature. Shared visual components
 
 ## Development
 
-Vite serves the frontend independently from the Go server:
+Vite serves the frontend in its own Docker container, independently from the Go server container:
 
 ```text
 Web app:  http://localhost:5173
 Go API:   http://localhost:8080
 ```
 
-During development, the Vite development server will proxy requests beginning with `/api/` to the Go server. React code should therefore use relative paths, for example:
+During development, Docker Compose runs Vite and Go as separate services. The Vite development server proxies requests beginning with `/api/` to the Go server service. React code should therefore use relative paths, for example:
 
 ```text
 /api/dashboard
@@ -56,16 +56,13 @@ This keeps browser requests same-origin from the frontend’s perspective and av
 
 ## Planned commands
 
-Once the frontend is implemented, the expected commands will be:
+Once the frontend is implemented, the expected development commands will be:
 
 ```bash
-npm install
-npm run dev
-npm run build
-npm run test
+docker compose up web server
 ```
 
-The production build remains a Vite concern. The Go server will not serve `web/dist`.
+The web container runs Vite with the source tree mounted for hot reload. The production build remains a Vite concern. The Go server will not serve `web/dist`.
 
 ## UI principles
 
