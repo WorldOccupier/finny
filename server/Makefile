@@ -1,4 +1,4 @@
-.PHONY: build test lint stop clean remove
+.PHONY: build test lint run stop clean remove
 
 COMPOSE_FILE ?= ../docker-compose.yml
 COMPOSE := docker compose -f $(COMPOSE_FILE)
@@ -12,6 +12,9 @@ test:
 lint:
 	$(COMPOSE) run --rm server sh -c 'test -z "$$(gofmt -l .)" || (echo "Go files are not formatted:"; gofmt -l .; exit 1)'
 	$(COMPOSE) run --rm server go vet ./...
+
+run:
+	$(COMPOSE) up server
 
 stop:
 	$(COMPOSE) stop

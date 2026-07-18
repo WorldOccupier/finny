@@ -69,22 +69,22 @@ This is the staged implementation plan for Finny. Complete phases in order and c
 
 ## Phase 5 — Persistence interface and SQLite adapter
 
-- [ ] Define one domain-oriented persistence interface.
-- [ ] Add dashboard read operations.
-- [ ] Add atomic dashboard-save operation.
-- [ ] Add revision operations.
-- [ ] Add current-FX operations.
-- [ ] Add asset operations.
-- [ ] Add snapshot operations.
-- [ ] Add spending-limit operations.
-- [ ] Add income operations.
-- [ ] Add idempotency-result operations.
-- [ ] Keep SQL and SQLite types inside the database package.
-- [ ] Add repository tests against SQLite.
-- [ ] Test empty-dashboard loading.
-- [ ] Test persistence of new records.
-- [ ] Test historical asset values after current-template removal.
-- [ ] Review the interface for domain-level boundaries.
+- [x] Define one domain-oriented persistence interface.
+- [x] Add dashboard read operations.
+- [x] Add atomic dashboard-save operation.
+- [x] Add revision operations.
+- [x] Add current-FX operations.
+- [x] Add asset operations.
+- [x] Add snapshot operations.
+- [x] Add spending-limit operations.
+- [x] Add income operations.
+- [x] Add idempotency-result operations.
+- [x] Keep SQL and SQLite types inside the database package.
+- [x] Add repository tests against SQLite.
+- [x] Test empty-dashboard loading.
+- [x] Test persistence of new records.
+- [x] Test historical asset values after current-template removal.
+- [x] Review the interface for domain-level boundaries.
 
 ## Phase 6 — Snapshot calculation and atomic save
 
