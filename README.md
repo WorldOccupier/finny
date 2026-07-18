@@ -10,7 +10,7 @@ finny/
 └── web/       # React + Vite frontend
 ```
 
-The web application is served by Vite, while the Go application serves JSON APIs only. During development, Vite proxies `/api/*` requests to the Go server.
+The web application is served by Vite, while the Go application serves JSON APIs only. During development, both applications run in separate Docker containers, and Vite proxies `/api/*` requests to the Go server.
 
 ## Planned features
 
@@ -30,11 +30,11 @@ Bank transaction imports, automatic exchange rates, authentication, and remote d
 
 ## Development model
 
-The frontend and backend run as separate processes:
+The frontend and backend run as separate Docker containers:
 
 ```text
 React/Vite: http://localhost:5173
 Go API:     http://localhost:8080
 ```
 
-The exact commands and configuration will be documented as implementation is added. The Go server will not serve the React build output.
+Docker Compose will orchestrate the development containers. SQLite data will live in a host-mounted volume so restarting or replacing the server container does not remove the database. The exact commands and configuration will be documented as implementation is added. The Go server will not serve the React build output.

@@ -155,25 +155,24 @@ Use `Europe/London` for user-facing timestamp interpretation. Multiple snapshots
 
 ## Development
 
-The Go API runs separately from Vite:
+The Go API runs in its own Docker container, separately from the Vite container:
 
 ```text
 Go API:  http://localhost:8080
 Web app: http://localhost:5173
 ```
 
-The Vite development server proxies `/api/*` requests to the Go API. The Go process serves JSON API responses only and does not serve frontend assets.
+Docker Compose runs both services during development. The Vite development server proxies `/api/*` requests to the Go API service. The Go process serves JSON API responses only and does not serve frontend assets.
 
 ## Planned commands
 
-Once the server is implemented, the expected commands will be:
+Once the server is implemented, the expected development command will be:
 
 ```bash
-go run ./cmd/finny
-go test ./...
+docker compose up web server
 ```
 
-Database setup and migration commands will be added when the persistence implementation is introduced.
+Database setup and migration commands will be added when the persistence implementation is introduced. SQLite data must be stored in a host-mounted volume rather than only inside the server container.
 
 ## Future boundaries
 
