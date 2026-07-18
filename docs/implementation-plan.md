@@ -112,20 +112,20 @@ This is the staged implementation plan for Finny. Complete phases in order and c
 
 ## Phase 7 — Dashboard API schema
 
-- [ ] Define the `GET /api/dashboard` response.
-- [ ] Define the `POST /api/dashboard` request.
-- [ ] Define revision handling.
-- [ ] Define numeric client-generated IDs.
-- [ ] Define asset values and currencies.
-- [ ] Define spending-limit values and currencies.
-- [ ] Define GBP income totals.
-- [ ] Define snapshot FX data.
-- [ ] Define `Idempotency-Key` behavior.
-- [ ] Define JSON error shape.
-- [ ] Define status-code mapping.
-- [ ] Create valid JSON fixtures.
-- [ ] Create invalid JSON fixtures.
-- [ ] Review and approve the API contract.
+- [x] Define the `GET /api/dashboard` response.
+- [x] Define the `POST /api/dashboard` request.
+- [x] Define revision handling.
+- [x] Define numeric client-generated IDs.
+- [x] Define asset values and currencies.
+- [x] Define spending-limit values and currencies.
+- [x] Define GBP income totals.
+- [x] Define snapshot FX data.
+- [x] Define `Idempotency-Key` behavior.
+- [x] Define JSON error shape.
+- [x] Define status-code mapping.
+- [x] Create valid JSON fixtures.
+- [x] Create invalid JSON fixtures.
+- [x] Review and approve the API contract.
 
 ## Phase 8 — GET dashboard endpoint
 

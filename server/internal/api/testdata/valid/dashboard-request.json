@@ -1,0 +1,18 @@
+{
+  "revision": 3,
+  "assets": [
+    {
+      "id": 0,
+      "name": "Savings",
+      "values": [
+        {"type": "UKGBP", "value": "1000"},
+        {"type": "INDIAINR", "value": "50000"}
+      ]
+    }
+  ],
+  "fxRate": "100",
+  "spendingLimits": [
+    {"key": "rent", "amount": "1200", "currency": "GBP"}
+  ],
+  "income": {"userOneGBP": "3000", "userTwoGBP": "2500"}
+}
