@@ -32,20 +32,20 @@ This is the staged implementation plan for Finny. Complete phases in order and c
 
 ## Phase 3 — Domain types and decimal conventions
 
-- [ ] Add domain types for assets.
-- [ ] Add domain types for UK and India values.
-- [ ] Add domain types for snapshots and totals.
-- [ ] Add domain types for spending limits.
-- [ ] Add domain types for income totals.
-- [ ] Add the dashboard read-model type.
-- [ ] Add `shopspring/decimal`.
-- [ ] Define decimal JSON serialization as strings.
-- [ ] Define `Europe/London` timestamp handling.
-- [ ] Test valid decimal parsing.
-- [ ] Test invalid decimal rejection.
-- [ ] Test GBP and INR validation.
-- [ ] Verify no financial calculation uses `float64`.
-- [ ] Review the domain types before creating the schema.
+- [x] Add domain types for assets.
+- [x] Add domain types for UK and India values.
+- [x] Add domain types for snapshots and totals.
+- [x] Add domain types for spending limits.
+- [x] Add domain types for income totals.
+- [x] Add the dashboard read-model type.
+- [x] Add `shopspring/decimal`.
+- [x] Define decimal JSON serialization as strings.
+- [x] Define `Europe/London` timestamp handling.
+- [x] Test valid decimal parsing.
+- [x] Test invalid decimal rejection.
+- [x] Test GBP and INR validation.
+- [x] Verify no financial calculation uses `float64`.
+- [x] Review the domain types before creating the schema.
 
 ## Phase 4 — SQLite schema and migrations
 

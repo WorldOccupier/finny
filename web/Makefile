@@ -1,4 +1,4 @@
-.PHONY: install dev build preview
+.PHONY: install dev build preview stop clean remove
 
 COMPOSE_FILE ?= ../docker-compose.yml
 COMPOSE := docker compose -f $(COMPOSE_FILE)
@@ -14,3 +14,11 @@ build:
 
 preview:
 	$(COMPOSE) run --rm --service-ports web npm run preview
+
+stop:
+	$(COMPOSE) stop
+
+clean:
+	$(COMPOSE) down --remove-orphans
+
+remove: clean
