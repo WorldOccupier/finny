@@ -60,3 +60,4 @@ This file records decisions that should remain stable across implementation sess
 
 - 2026-07-18: Selected `modernc.org/sqlite` for the SQLite driver to keep Docker and CI builds CGO-free.
 - 2026-07-18: Snapshot calculations use `shopspring/decimal` with fixed 18-place division for deterministic FX conversions.
+- 2026-07-19: London snapshot timestamps serialize with RFC3339 nanosecond precision so rapid consecutive snapshots remain distinct while preserving their London offset.

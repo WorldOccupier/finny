@@ -180,40 +180,40 @@ This is the staged implementation plan for Finny. Complete phases in order and c
 
 ## Phase 11 — Edit dashboard UI
 
-- [ ] Load the complete dashboard into an editable form.
-- [ ] Add asset creation.
-- [ ] Add asset rename and removal.
-- [ ] Add UK and India asset-value editing.
-- [ ] Add FX-rate editing.
-- [ ] Add spending-limit editing.
-- [ ] Add income editing for both users.
-- [ ] Submit the complete graph.
-- [ ] Submit the revision.
-- [ ] Generate and submit an idempotency key.
-- [ ] Handle validation errors without losing form data.
-- [ ] Handle revision conflicts with a reload flow.
-- [ ] Refresh from the successful POST response.
-- [ ] Test first-snapshot editing.
-- [ ] Test carry-forward editing.
-- [ ] Test new and removed assets.
-- [ ] Test retry after a lost response.
-- [ ] Review the full edit workflow.
+- [x] Load the complete dashboard into an editable form.
+- [x] Add asset creation.
+- [x] Add asset rename and removal.
+- [x] Add UK and India asset-value editing.
+- [x] Add FX-rate editing.
+- [x] Add spending-limit editing.
+- [x] Add income editing for both users.
+- [x] Submit the complete graph.
+- [x] Submit the revision.
+- [x] Generate and submit an idempotency key.
+- [x] Handle validation errors without losing form data.
+- [x] Handle revision conflicts with a reload flow.
+- [x] Refresh from the successful POST response.
+- [x] Test first-snapshot editing.
+- [x] Test carry-forward editing.
+- [x] Test new and removed assets.
+- [x] Test retry after a lost response.
+- [x] Review the full edit workflow.
 
 ## Phase 12 — Integration and end-to-end verification
 
-- [ ] Add Go API integration tests.
-- [ ] Add frontend API-client tests.
-- [ ] Add browser-level tests for `/`.
-- [ ] Add browser-level tests for `/edit`.
-- [ ] Test creation of the first snapshot.
-- [ ] Test creation of a later snapshot.
-- [ ] Test FX changes with frozen history.
-- [ ] Test asset removal with retained history.
-- [ ] Test stale concurrent edits.
-- [ ] Test idempotent retries.
-- [ ] Verify a clean checkout can run the documented commands.
-- [ ] Update documentation to match the implementation.
-- [ ] Review the POC before adding authentication or bank imports.
+- [x] Add Go API integration tests.
+- [x] Add frontend API-client tests.
+- [x] Add browser-level tests for `/`.
+- [x] Add browser-level tests for `/edit`.
+- [x] Test creation of the first snapshot.
+- [x] Test creation of a later snapshot.
+- [x] Test FX changes with frozen history.
+- [x] Test asset removal with retained history.
+- [x] Test stale concurrent edits.
+- [x] Test idempotent retries.
+- [x] Verify a clean checkout can run the documented commands. (Verified from an isolated dependency-free copy with `docker compose up web server --build -d`; Go `/health` returned `{"status":"ok"}` and Vite returned the HTML shell. Temporary host ports were used because the default ports were occupied.)
+- [x] Update documentation to match the implementation.
+- [x] Review the POC before adding authentication or bank imports.
 
 ## Deferred work
 
