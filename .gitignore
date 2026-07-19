@@ -31,6 +31,10 @@ go.work.sum
 # Docker BuildKit dependency/build caches
 .docker-cache/
 
+# Frontend dependencies and build output
+web/node_modules/
+web/dist/
+
 # Editor/IDE
 # .idea/
 # .vscode/

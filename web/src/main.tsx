@@ -1,16 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { DashboardPage } from "./features/dashboard/DashboardPage";
 import "./styles.css";
-
-function Dashboard() {
-  return (
-    <main>
-      <h1>Finny</h1>
-      <p>Dashboard placeholder</p>
-      <a href="/edit">Edit dashboard</a>
-    </main>
-  );
-}
 
 function Edit() {
   return (
@@ -24,6 +15,10 @@ function Edit() {
 
 function App() {
   return window.location.pathname === "/edit" ? <Edit /> : <Dashboard />;
+}
+
+function Dashboard() {
+  return <DashboardPage />;
 }
 
 createRoot(document.getElementById("root")!).render(

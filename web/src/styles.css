@@ -1,13 +1,380 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap");
+
 :root {
-  font-family: system-ui, sans-serif;
-  color: #1f2937;
-  background: #f3f4f6;
+  background: #11121a;
+  color: #f6f3ff;
+  font-family: "DM Sans", "Segoe UI", sans-serif;
+  font-synthesis: none;
 }
 
-main {
-  max-width: 48rem;
-  margin: 4rem auto;
-  padding: 2rem;
-  background: white;
-  border-radius: 0.75rem;
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background: radial-gradient(circle at 82% 0%, #292346 0, #11121a 36rem), #11121a;
+  margin: 0;
+  min-width: 320px;
+}
+
+button,
+a {
+  font: inherit;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.app-shell {
+  margin: 0 auto;
+  padding: 28px 0 42px;
+  width: min(1120px, calc(100% - 40px));
+}
+
+.topbar {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0 66px;
+}
+
+.brand {
+  font: 700 1.35rem "Space Grotesk", "Segoe UI", sans-serif;
+  letter-spacing: -0.06em;
+}
+
+.brand span {
+  color: #a395ff;
+}
+
+.edit-link {
+  color: #b9b5ca;
+  font-size: 0.9rem;
+  transition: color 0.2s;
+}
+
+.edit-link:hover {
+  color: #fff;
+}
+
+.hero {
+  align-items: end;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 28px;
+}
+
+.hero h1,
+.status-shell h1 {
+  font: 600 clamp(2.25rem, 6vw, 4.6rem) / 1 "Space Grotesk", "Segoe UI", sans-serif;
+  letter-spacing: -0.07em;
+  margin: 8px 0 10px;
+}
+
+.hero-copy,
+.status-shell > p:last-of-type {
+  color: #9b98ad;
+  margin: 0;
+}
+
+.revision,
+.chart-caption {
+  color: #89869a;
+  font-size: 0.78rem;
+}
+
+.eyebrow {
+  color: #a395ff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.net-worth-card {
+  align-items: center;
+  background: linear-gradient(120deg, #262141, #31285c);
+  border: 1px solid #4a3f7d;
+  border-radius: 22px;
+  box-shadow: 0 20px 60px #09091066;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 18px;
+  padding: 34px 38px;
+}
+
+.net-worth-card h2 {
+  font: 600 clamp(2.4rem, 7vw, 4.6rem) / 1 "Space Grotesk", "Segoe UI", sans-serif;
+  letter-spacing: -0.08em;
+  margin: 10px 0 8px;
+}
+
+.muted {
+  color: #89869a;
+  font-size: 0.9rem;
+}
+
+.currency-toggle {
+  background: #17152499;
+  border: 1px solid #514786;
+  border-radius: 12px;
+  display: flex;
+  gap: 3px;
+  padding: 4px;
+}
+
+.toggle-button {
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  color: #aaa5bd;
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 9px 12px;
+}
+
+.toggle-button:focus-visible,
+.edit-link:focus-visible,
+.brand:focus-visible,
+.primary-button:focus-visible {
+  outline: 3px solid #d1cbff;
+  outline-offset: 3px;
+}
+
+.toggle-button.active {
+  background: #a395ff;
+  color: #171524;
+}
+
+.panel {
+  background: #191a25cc;
+  border: 1px solid #292a3b;
+  border-radius: 18px;
+  padding: 24px;
+}
+
+.history-panel {
+  margin-bottom: 18px;
+}
+
+.section-heading {
+  align-items: start;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 22px;
+}
+
+.section-heading h2 {
+  font: 600 1.25rem "Space Grotesk", "Segoe UI", sans-serif;
+  letter-spacing: -0.04em;
+  margin: 7px 0 0;
+}
+
+.chart {
+  height: 235px;
+  margin: 0 -4px;
+  position: relative;
+}
+
+.chart::before {
+  background: repeating-linear-gradient(
+    to bottom,
+    #fff0 0,
+    #fff0 24%,
+    #ffffff0a 24.5%,
+    #ffffff0a 25%
+  );
+  content: "";
+  inset: 0;
+  position: absolute;
+}
+
+.chart svg {
+  height: 100%;
+  overflow: visible;
+  position: relative;
+  width: 100%;
+}
+
+.chart-labels {
+  color: #77748a;
+  display: flex;
+  font-size: 0.75rem;
+  justify-content: space-between;
+}
+
+.chart-labels strong {
+  color: #cbc7dd;
+  font-weight: 600;
+}
+
+.two-column {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: repeat(2, 1fr);
+  margin-bottom: 18px;
+}
+
+.country-badge {
+  background: #242432;
+  border-radius: 6px;
+  color: #aaa5bd;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 6px 8px;
+}
+
+.asset-list,
+.detail-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.asset-row,
+.detail-row {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  min-height: 46px;
+}
+
+.asset-row strong,
+.detail-row strong {
+  color: #f3f1fc;
+  font-size: 0.92rem;
+  margin-left: auto;
+}
+
+.asset-row span,
+.detail-row span {
+  color: #bebacd;
+  font-size: 0.9rem;
+}
+
+.asset-icon {
+  align-items: center;
+  background: #28263b;
+  border-radius: 10px;
+  color: #a395ff;
+  display: flex;
+  font-size: 0.75rem;
+  font-weight: 700;
+  height: 34px;
+  justify-content: center;
+  width: 34px;
+}
+
+.detail-row {
+  border-bottom: 1px solid #282936;
+  padding: 4px 0;
+}
+
+.detail-row:last-child {
+  border: 0;
+}
+
+footer {
+  color: #5f5c6d;
+  font-size: 0.75rem;
+  padding: 18px 0;
+  text-align: center;
+}
+
+.status-shell {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  margin: auto;
+  min-height: 80vh;
+  max-width: 460px;
+  padding: 30px;
+  text-align: center;
+}
+
+.status-shell h1 {
+  font-size: clamp(2.2rem, 7vw, 3.8rem);
+}
+
+.status-shell > p:last-of-type {
+  line-height: 1.7;
+}
+
+.status-mark {
+  align-items: center;
+  background: #28234b;
+  border: 1px solid #554a91;
+  border-radius: 18px;
+  color: #a395ff;
+  display: flex;
+  font-size: 1.5rem;
+  height: 56px;
+  justify-content: center;
+  margin-bottom: 24px;
+  width: 56px;
+}
+
+.primary-button {
+  background: #a395ff;
+  border: 0;
+  border-radius: 10px;
+  color: #171524;
+  cursor: pointer;
+  font-weight: 700;
+  margin-top: 25px;
+  padding: 12px 18px;
+}
+
+.empty-panel {
+  color: #89869a;
+  line-height: 1.6;
+}
+
+@media (max-width: 700px) {
+  .app-shell {
+    padding-top: 20px;
+    width: min(100% - 28px, 560px);
+  }
+
+  .topbar {
+    padding-bottom: 48px;
+  }
+
+  .hero {
+    align-items: start;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .net-worth-card {
+    align-items: start;
+    flex-direction: column;
+    gap: 28px;
+    padding: 26px;
+  }
+
+  .currency-toggle {
+    align-self: stretch;
+  }
+
+  .toggle-button {
+    flex: 1;
+  }
+
+  .two-column {
+    grid-template-columns: 1fr;
+  }
+
+  .panel {
+    padding: 20px;
+  }
+
+  .chart {
+    height: 190px;
+  }
 }
