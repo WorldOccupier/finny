@@ -1,5 +1,5 @@
-import type { CombinedTotal, Snapshot, Currency } from "../../api/dashboard";
-import { chartTicks, formatDate, formatMoney, scaledChartValue } from "./format";
+import type { Snapshot, Currency } from "../../api/dashboard";
+import { chartTicks, combinedTotalValue, formatDate, formatMoney, scaledChartValue } from "./format";
 
 interface HistoryChartProps {
   history: Snapshot[];
@@ -10,19 +10,19 @@ export function HistoryChart({ history, currency }: HistoryChartProps) {
   const points = history
     .map((snapshot) => ({
       date: snapshot.committedAt,
-      total: snapshot.totals.combined.find((item) => item.currency === currency),
+      total: combinedTotalValue(snapshot.totals.combined, currency),
     }))
-    .filter((point): point is { date: string; total: CombinedTotal } => point.total !== undefined);
+    .filter((point): point is { date: string; total: string } => point.total !== undefined);
 
   if (points.length === 0) {
     return <section className="panel empty-panel">Your net-worth history will appear here after your first snapshot.</section>;
   }
 
-  const values = points.map((point) => scaledChartValue(point.total.value));
+  const values = points.map((point) => scaledChartValue(point.total));
   const minimum = values.reduce((current, value) => (value < current ? value : current));
   const maximum = values.reduce((current, value) => (value > current ? value : current));
   const range = maximum - minimum || 1n;
-  const ticks = chartTicks(points.map((point) => point.total.value));
+  const ticks = chartTicks(points.map((point) => point.total));
   const chartPoints = points.map((point, index) => {
     const normalized = Number(((values[index] - minimum) * 10000n) / range) / 10000;
     return `${(index / Math.max(points.length - 1, 1)) * 100},${88 - normalized * 62}`;
@@ -56,7 +56,7 @@ export function HistoryChart({ history, currency }: HistoryChartProps) {
       </div>
       <div className="chart-labels">
         <span>{formatDate(points[0].date)}</span>
-        <strong>{formatMoney(points[points.length - 1].total.value, currency)}</strong>
+        <strong>{formatMoney(points[points.length - 1].total, currency)}</strong>
         <span>{formatDate(points[points.length - 1].date)}</span>
       </div>
     </section>

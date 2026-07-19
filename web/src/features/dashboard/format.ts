@@ -1,4 +1,4 @@
-import type { Currency, ValueType } from "../../api/dashboard";
+import type { CombinedTotal, Currency, ValueType } from "../../api/dashboard";
 
 export const currencyForType = (type: ValueType): Currency =>
   type === "UKGBP" ? "GBP" : "INR";
@@ -14,6 +14,10 @@ export function formatMoney(value: string, currency: Currency): string {
   const decimals = fraction.padEnd(2, "0").slice(0, 2);
   const symbol = currency === "GBP" ? "£" : "₹";
   return `${sign}${symbol}${grouped}.${decimals}`;
+}
+
+export function combinedTotalValue(totals: CombinedTotal[], currency: Currency): string | undefined {
+  return totals.find((total) => total.currency === currency)?.value;
 }
 
 export function formatDate(timestamp: string): string {

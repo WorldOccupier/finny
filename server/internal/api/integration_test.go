@@ -55,6 +55,51 @@ func TestDashboardAPIIntegrationCreatesLaterSnapshotAndPreservesHistory(t *testi
 	}
 }
 
+func TestDashboardAPIIntegrationReturnsConvertedCombinedTotalsAndFrozenHistory(t *testing.T) {
+	db, err := database.Open(context.Background(), filepath.Join(t.TempDir(), "finny.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	if err := database.Migrate(context.Background(), db); err != nil {
+		t.Fatal(err)
+	}
+	handler := NewDashboardHandler(database.NewSQLiteStore(db), slog.New(slog.NewTextHandler(io.Discard, nil)))
+
+	first := postDashboard(t, handler, "conversion-first", []byte(`{"revision":0,"assets":[{"id":1,"name":"Mixed savings","values":[{"type":"UKGBP","value":"225"},{"type":"INDIAINR","value":"900"}]}],"fxRate":"100","spendingLimits":[],"income":{"userOneGBP":"0","userTwoGBP":"0"}}`))
+	assertCombinedResponseTotals(t, first, "234", "23400")
+
+	second := postDashboard(t, handler, "conversion-second", []byte(`{"revision":1,"assets":[{"id":1,"name":"Mixed savings","values":[{"type":"UKGBP","value":"225"},{"type":"INDIAINR","value":"900"}]}],"fxRate":"200","spendingLimits":[],"income":{"userOneGBP":"0","userTwoGBP":"0"}}`))
+	assertCombinedResponseTotals(t, second, "229.5", "45900")
+	assertCombinedSnapshotTotals(t, second.History[0], "234", "23400")
+	assertCombinedSnapshotTotals(t, second.History[1], "229.5", "45900")
+
+	request := httptest.NewRequest(http.MethodGet, DASHBOARD_ROUTE, nil)
+	recorder := httptest.NewRecorder()
+	handler.ServeHTTP(recorder, request)
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("GET status = %d", recorder.Code)
+	}
+	var loaded DashboardResponse
+	if err := json.NewDecoder(recorder.Body).Decode(&loaded); err != nil {
+		t.Fatal(err)
+	}
+	assertCombinedResponseTotals(t, loaded, "229.5", "45900")
+	assertCombinedSnapshotTotals(t, loaded.History[0], "234", "23400")
+}
+
+func assertCombinedResponseTotals(t *testing.T, response DashboardResponse, wantGBP, wantINR string) {
+	t.Helper()
+	assertCombinedSnapshotTotals(t, SnapshotResponse{Totals: response.CurrentTotals}, wantGBP, wantINR)
+}
+
+func assertCombinedSnapshotTotals(t *testing.T, snapshot SnapshotResponse, wantGBP, wantINR string) {
+	t.Helper()
+	if len(snapshot.Totals.Combined) != 2 || snapshot.Totals.Combined[0].Value.String() != wantGBP || snapshot.Totals.Combined[1].Value.String() != wantINR {
+		t.Fatalf("combined totals = %+v, want GBP %s and INR %s", snapshot.Totals.Combined, wantGBP, wantINR)
+	}
+}
+
 func TestDashboardAPIIntegrationConvertsAssetCurrencyMemberships(t *testing.T) {
 	db, err := database.Open(context.Background(), filepath.Join(t.TempDir(), "finny.db"))
 	if err != nil {

@@ -105,7 +105,7 @@ func TestDashboardHandlerReturnsCompleteDashboardInHistoryOrder(t *testing.T) {
 	if response.History[0].CommittedAt != "2026-07-15T13:00:00+01:00" {
 		t.Fatalf("timestamp = %q", response.History[0].CommittedAt)
 	}
-	if response.CurrentTotals.Combined[0].Value.String() != "260" || response.CurrentTotals.Combined[1].Value.String() != "26000" {
+	if response.CurrentTotals.Combined[0].Value.String() != "150.5" || response.CurrentTotals.Combined[1].Value.String() != "15050" {
 		t.Fatalf("current totals = %+v", response.CurrentTotals)
 	}
 }

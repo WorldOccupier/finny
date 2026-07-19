@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/WorldOccupier/finny/server/internal/domain"
+	"github.com/WorldOccupier/finny/server/internal/snapshot"
 )
 
 const (
@@ -49,6 +50,9 @@ func NewDashboardResponse(dashboard domain.Dashboard) DashboardResponse {
 		spendingLimits = []domain.SpendingLimit{}
 	}
 	currentTotals := dashboard.CurrentTotals
+	if recalculated, ok := recalculateTotals(dashboard.Assets, dashboard.CurrentFXRate); ok {
+		currentTotals = recalculated
+	}
 	if currentTotals.Country == nil {
 		currentTotals.Country = []domain.TotalValue{}
 	}
@@ -62,6 +66,9 @@ func NewDashboardResponse(dashboard domain.Dashboard) DashboardResponse {
 			snapshotAssets = []domain.Asset{}
 		}
 		snapshotTotals := snapshot.Totals
+		if recalculated, ok := recalculateTotals(snapshot.Assets, snapshot.FXRate); ok {
+			snapshotTotals = recalculated
+		}
 		if snapshotTotals.Country == nil {
 			snapshotTotals.Country = []domain.TotalValue{}
 		}
@@ -85,6 +92,17 @@ func NewDashboardResponse(dashboard domain.Dashboard) DashboardResponse {
 		SpendingLimits: spendingLimits,
 		Income:         dashboard.Income,
 	}
+}
+
+func recalculateTotals(assets []domain.Asset, fxRate domain.Decimal) (domain.DashboardTotals, bool) {
+	if len(assets) == 0 || fxRate.IsZero() || fxRate.IsNegative() {
+		return domain.DashboardTotals{}, false
+	}
+	totals, err := snapshot.CalculateTotals(assets, fxRate)
+	if err != nil {
+		return domain.DashboardTotals{}, false
+	}
+	return totals, true
 }
 
 type ErrorCode string
