@@ -34,3 +34,21 @@ export function scaledChartValue(value: string): bigint {
   const cents = BigInt(`${unsignedWhole || "0"}${fraction.padEnd(2, "0").slice(0, 2)}`);
   return cents * sign;
 }
+
+function decimalFromScaledValue(value: bigint): string {
+  const sign = value < 0n ? "-" : "";
+  const absolute = value < 0n ? -value : value;
+  const whole = absolute / 100n;
+  const fraction = (absolute % 100n).toString().padStart(2, "0");
+  return `${sign}${whole}.${fraction}`;
+}
+
+export function chartTicks(values: string[]): string[] {
+  const scaledValues = values.map(scaledChartValue);
+  const minimum = scaledValues.reduce((current, value) => (value < current ? value : current));
+  const maximum = scaledValues.reduce((current, value) => (value > current ? value : current));
+  const range = maximum - minimum;
+  return [3n, 2n, 1n, 0n].map((position) =>
+    decimalFromScaledValue(minimum + (range * position) / 3n),
+  );
+}

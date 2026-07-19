@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatMoney, scaledChartValue } from "./format";
+import { chartTicks, formatMoney, scaledChartValue } from "./format";
 
 describe("dashboard formatting", () => {
   it("formats decimal strings without converting through floating point", () => {
@@ -9,5 +9,9 @@ describe("dashboard formatting", () => {
 
   it("scales chart values with integer arithmetic", () => {
     expect(scaledChartValue("1000.50")).toBe(100050n);
+  });
+
+  it("creates decimal-safe chart ticks from the minimum to maximum value", () => {
+    expect(chartTicks(["1000", "1500"])).toEqual(["1500.00", "1333.33", "1166.66", "1000.00"]);
   });
 });

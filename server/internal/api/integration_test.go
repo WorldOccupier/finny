@@ -55,6 +55,36 @@ func TestDashboardAPIIntegrationCreatesLaterSnapshotAndPreservesHistory(t *testi
 	}
 }
 
+func TestDashboardAPIIntegrationConvertsAssetCurrencyMemberships(t *testing.T) {
+	db, err := database.Open(context.Background(), filepath.Join(t.TempDir(), "finny.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	if err := database.Migrate(context.Background(), db); err != nil {
+		t.Fatal(err)
+	}
+	handler := NewDashboardHandler(database.NewSQLiteStore(db), slog.New(slog.NewTextHandler(io.Discard, nil)))
+
+	first := postDashboard(t, handler, "membership-first", []byte(`{"revision":0,"assets":[{"id":0,"name":"Savings","valueTypes":["UKGBP","INDIAINR"],"values":[{"type":"UKGBP","value":"100"},{"type":"INDIAINR","value":"5000"}]}],"fxRate":"100","spendingLimits":[],"income":{"userOneGBP":"0","userTwoGBP":"0"}}`))
+	if len(first.Assets[0].Values) != 2 {
+		t.Fatalf("first asset values = %+v", first.Assets[0].Values)
+	}
+
+	gbpOnly := postDashboard(t, handler, "membership-gbp", []byte(`{"revision":1,"assets":[{"id":0,"name":"Savings","valueTypes":["UKGBP"],"values":[{"type":"UKGBP","value":"125"}]}],"fxRate":"100","spendingLimits":[],"income":{"userOneGBP":"0","userTwoGBP":"0"}}`))
+	if len(gbpOnly.Assets[0].Values) != 1 || gbpOnly.Assets[0].Values[0].Type != "UKGBP" {
+		t.Fatalf("GBP-only asset = %+v", gbpOnly.Assets[0].Values)
+	}
+	if len(gbpOnly.History[0].Assets[0].Values) != 2 {
+		t.Fatalf("GBP conversion changed history = %+v", gbpOnly.History[0].Assets[0].Values)
+	}
+
+	inrOnly := postDashboard(t, handler, "membership-inr", []byte(`{"revision":2,"assets":[{"id":0,"name":"Savings","valueTypes":["INDIAINR"],"values":[{"type":"INDIAINR","value":"6500"}]}],"fxRate":"100","spendingLimits":[],"income":{"userOneGBP":"0","userTwoGBP":"0"}}`))
+	if len(inrOnly.Assets[0].Values) != 1 || inrOnly.Assets[0].Values[0].Type != "INDIAINR" {
+		t.Fatalf("INR-only asset = %+v", inrOnly.Assets[0].Values)
+	}
+}
+
 func postDashboard(t *testing.T, handler http.Handler, key string, body []byte) DashboardResponse {
 	t.Helper()
 	request := httptest.NewRequest(http.MethodPost, DASHBOARD_ROUTE, bytes.NewReader(body))

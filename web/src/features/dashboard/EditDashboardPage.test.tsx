@@ -37,7 +37,7 @@ describe("EditDashboardPage", () => {
     await waitFor(() => expect(screen.getByDisplayValue("Savings")).toBeInTheDocument());
 
     fireEvent.change(screen.getByDisplayValue("Savings"), { target: { value: "House savings" } });
-    fireEvent.change(screen.getByLabelText("House savings UK GBP value"), { target: { value: "200" } });
+    fireEvent.change(screen.getByLabelText("House savings United Kingdom · GBP value"), { target: { value: "200" } });
     fireEvent.change(screen.getByLabelText("Indian rupees per pound"), { target: { value: "105" } });
     fireEvent.change(screen.getByLabelText("User one income"), { target: { value: "3200" } });
     fireEvent.click(screen.getByRole("button", { name: "+ Add limit" }));
@@ -114,5 +114,56 @@ describe("EditDashboardPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save snapshot" }));
     await waitFor(() => expect(screen.getByText("Your snapshot is saved.")).toBeInTheDocument());
     expect(fetchMock.mock.calls[2][1].headers["Idempotency-Key"]).not.toBe(firstKey);
+  });
+
+  it("keeps a spending-limit input mounted while its name changes", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify(empty), { status: 200 })));
+    render(<EditDashboardPage />);
+    await waitFor(() => expect(screen.getByRole("button", { name: "+ Add limit" })).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: "+ Add limit" }));
+    const input = screen.getByLabelText("Spending limit 1 name");
+    input.focus();
+    fireEvent.change(input, { target: { value: "F" } });
+    expect(screen.getByLabelText("Spending limit 1 name")).toBe(input);
+    expect(document.activeElement).toBe(input);
+  });
+
+  it("supports GBP-only, INR-only, and both-currency assets", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify(empty), { status: 200 })));
+    render(<EditDashboardPage />);
+    await waitFor(() => expect(screen.getByRole("button", { name: "+ Add asset" })).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: "+ Add asset" }));
+    const gbp = screen.getByRole("checkbox", { name: /United Kingdom/ });
+    const inr = screen.getByRole("checkbox", { name: /India/ });
+    expect(gbp).toBeChecked();
+    expect(inr).not.toBeChecked();
+    fireEvent.click(inr);
+    expect(inr).toBeChecked();
+    fireEvent.click(gbp);
+    expect(gbp).not.toBeChecked();
+    expect(screen.getByLabelText("New asset India · INR value")).toBeInTheDocument();
+  });
+
+  it("converts an existing asset between currency memberships", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify(populated), { status: 200 })));
+    render(<EditDashboardPage />);
+    await waitFor(() => expect(screen.getByDisplayValue("Savings")).toBeInTheDocument());
+    const india = screen.getByRole("checkbox", { name: /India/ });
+    const uk = screen.getByRole("checkbox", { name: /United Kingdom/ });
+    fireEvent.click(india);
+    expect(screen.queryByLabelText("Savings India · INR value")).not.toBeInTheDocument();
+    fireEvent.click(india);
+    fireEvent.click(uk);
+    expect(screen.queryByLabelText("Savings United Kingdom · GBP value")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Savings India · INR value")).toBeInTheDocument();
+  });
+
+  it("uses accessible trash buttons for assets and limits", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify(populated), { status: 200 })));
+    render(<EditDashboardPage />);
+    await waitFor(() => expect(screen.getByDisplayValue("Savings")).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: "+ Add limit" }));
+    expect(screen.getByRole("button", { name: "Remove Savings" })).toHaveAttribute("title", "Remove Savings");
+    expect(screen.getByRole("button", { name: "Remove New limit spending limit" })).toBeInTheDocument();
   });
 });

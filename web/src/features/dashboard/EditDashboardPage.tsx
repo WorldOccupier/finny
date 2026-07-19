@@ -12,26 +12,40 @@ import {
 } from "../../api/dashboard";
 
 type FormState = Pick<DashboardRequest, "revision" | "assets" | "fxRate" | "spendingLimits" | "income">;
+type EditableSpendingLimit = SpendingLimit & { localID: string };
+type EditableFormState = Omit<FormState, "spendingLimits"> & { spendingLimits: EditableSpendingLimit[] };
 type SaveAttempt = { fingerprint: string; key: string };
 
-function toForm(data: DashboardResponse): FormState {
+let nextLimitID = 0;
+
+function newLimitID(): string {
+  nextLimitID += 1;
+  return `limit-${nextLimitID}`;
+}
+
+function toForm(data: DashboardResponse): EditableFormState {
   return {
     revision: data.revision,
     fxRate: data.currentFxRate === "0" ? "1" : data.currentFxRate,
     assets: data.assets.map((asset) => ({
       ...asset,
-      values: [
-        { type: "UKGBP" as const, value: asset.values.find((value) => value.type === "UKGBP")?.value ?? "0" },
-        { type: "INDIAINR" as const, value: asset.values.find((value) => value.type === "INDIAINR")?.value ?? "0" },
-      ],
+      values: asset.values.map((value) => ({ ...value })),
+      valueTypes: asset.valueTypes ?? asset.values.map((value) => value.type),
     })),
-    spendingLimits: data.spendingLimits.map((limit) => ({ ...limit })),
+    spendingLimits: data.spendingLimits.map((limit) => ({ ...limit, localID: newLimitID() })),
     income: { ...data.income },
   };
 }
 
+function toRequest(form: EditableFormState): FormState {
+  return {
+    ...form,
+    spendingLimits: form.spendingLimits.map(({ localID: _localID, ...limit }) => limit),
+  };
+}
+
 export function EditDashboardPage() {
-  const [form, setForm] = useState<FormState | null>(null);
+  const [form, setForm] = useState<EditableFormState | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "saving">("loading");
   const [message, setMessage] = useState<string>();
   const [messageKind, setMessageKind] = useState<"error" | "success" | "info">("info");
@@ -75,25 +89,48 @@ export function EditDashboardPage() {
     const nextID = form.assets.reduce((highest, asset) => Math.max(highest, asset.id), -1) + 1;
     setForm({
       ...form,
-      assets: [...form.assets, { id: nextID, name: "New asset", values: [{ type: "UKGBP", value: "0" }, { type: "INDIAINR", value: "0" }] }],
+      assets: [...form.assets, { id: nextID, name: "New asset", valueTypes: ["UKGBP"], values: [{ type: "UKGBP", value: "0" }] }],
     });
   };
 
-  const updateLimit = (index: number, update: (limit: SpendingLimit) => SpendingLimit) => {
-    setForm({ ...form, spendingLimits: form.spendingLimits.map((limit, current) => current === index ? update(limit) : limit) });
+  const updateLimit = (localID: string, update: (limit: EditableSpendingLimit) => EditableSpendingLimit) => {
+    setForm((current) => current && { ...current, spendingLimits: current.spendingLimits.map((limit) => limit.localID === localID ? update(limit) : limit) });
+  };
+
+  const updateAssetValue = (assetID: number, type: "UKGBP" | "INDIAINR", value: string) => {
+    updateAsset(assetID, (asset) => ({
+      ...asset,
+      valueTypes: asset.valueTypes?.includes(type) ? asset.valueTypes : [...(asset.valueTypes ?? []), type],
+      values: asset.values.some((item) => item.type === type)
+        ? asset.values.map((item) => item.type === type ? { ...item, value } : item)
+        : [...asset.values, { type, value }],
+    }));
+  };
+
+  const toggleAssetCurrency = (assetID: number, type: "UKGBP" | "INDIAINR", enabled: boolean) => {
+    updateAsset(assetID, (asset) => ({
+      ...asset,
+      valueTypes: enabled
+        ? asset.valueTypes?.includes(type) ? asset.valueTypes : [...(asset.valueTypes ?? []), type]
+        : (asset.valueTypes ?? []).filter((item) => item !== type),
+      values: enabled
+        ? asset.values.some((item) => item.type === type) ? asset.values : [...asset.values, { type, value: "0" }]
+        : asset.values.filter((item) => item.type !== type),
+    }));
   };
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setStatus("saving");
     setMessage(undefined);
-    const fingerprint = JSON.stringify(form);
+    const request = toRequest(form);
+    const fingerprint = JSON.stringify(request);
     const attempt = saveAttempt.current?.fingerprint === fingerprint
       ? saveAttempt.current
       : { fingerprint, key: createIdempotencyKey() };
     saveAttempt.current = attempt;
     try {
-      const committed = await saveDashboard(form, attempt.key);
+      const committed = await saveDashboard(request, attempt.key);
       setForm(toForm(committed));
       saveAttempt.current = undefined;
       setStatus("ready");
@@ -133,18 +170,18 @@ export function EditDashboardPage() {
             <div><p className="eyebrow">Shared portfolio</p><h2>Assets</h2></div>
             <button className="secondary-button" onClick={addAsset} type="button">+ Add asset</button>
           </div>
-          {form.assets.length === 0 && <p className="empty-panel">Your first asset can be added here. Give it both a UK and India value.</p>}
+          {form.assets.length === 0 && <p className="empty-panel">Add an asset in GBP, INR, or both currencies.</p>}
           <div className="editor-list">
             {form.assets.map((asset) => (
               <fieldset className="asset-editor" key={asset.id}>
                 <legend>Asset {asset.id + 1}</legend>
                 <div className="asset-editor-heading">
                   <label>Asset name<input aria-label="Asset name" required value={asset.name} onChange={(event) => updateAsset(asset.id, (current) => ({ ...current, name: event.target.value }))} /></label>
-                  <button className="text-button danger" onClick={() => setForm({ ...form, assets: form.assets.filter((current) => current.id !== asset.id) })} type="button">Remove</button>
+                  <button className="icon-button danger" aria-label={`Remove ${asset.name}`} title={`Remove ${asset.name}`} onClick={() => setForm({ ...form, assets: form.assets.filter((current) => current.id !== asset.id) })} type="button"><TrashIcon /></button>
                 </div>
                 <div className="value-grid">
-                  <label>United Kingdom · GBP<input inputMode="decimal" aria-label={`${asset.name} UK GBP value`} required value={asset.values.find((value) => value.type === "UKGBP")?.value ?? "0"} onChange={(event) => updateAsset(asset.id, (current) => ({ ...current, values: current.values.map((value) => value.type === "UKGBP" ? { ...value, value: event.target.value } : value) }))} /></label>
-                  <label>India · INR<input inputMode="decimal" aria-label={`${asset.name} India INR value`} required value={asset.values.find((value) => value.type === "INDIAINR")?.value ?? "0"} onChange={(event) => updateAsset(asset.id, (current) => ({ ...current, values: current.values.map((value) => value.type === "INDIAINR" ? { ...value, value: event.target.value } : value) }))} /></label>
+                  <CurrencyField asset={asset} type="UKGBP" label="United Kingdom · GBP" onToggle={toggleAssetCurrency} onChange={updateAssetValue} />
+                  <CurrencyField asset={asset} type="INDIAINR" label="India · INR" onToggle={toggleAssetCurrency} onChange={updateAssetValue} />
                 </div>
               </fieldset>
             ))}
@@ -165,14 +202,14 @@ export function EditDashboardPage() {
           </section>
         </div>
         <section className="panel form-panel">
-          <div className="section-heading"><div><p className="eyebrow">Monthly guardrails</p><h2>Spending limits</h2></div><button className="secondary-button" onClick={() => setForm({ ...form, spendingLimits: [...form.spendingLimits, { key: "New limit", amount: "0", currency: "GBP" }] })} type="button">+ Add limit</button></div>
+          <div className="section-heading"><div><p className="eyebrow">Monthly guardrails</p><h2>Spending limits</h2></div><button className="secondary-button" onClick={() => setForm({ ...form, spendingLimits: [...form.spendingLimits, { key: "New limit", amount: "0", currency: "GBP", localID: newLimitID() }] })} type="button">+ Add limit</button></div>
           {form.spendingLimits.length === 0 && <p className="empty-panel">No limits yet. Add one to keep a little space around your spending.</p>}
           <div className="editor-list">
-            {form.spendingLimits.map((limit, index) => <div className="limit-editor" key={`${limit.key}-${index}`}>
-              <label>Limit name<input aria-label={`Spending limit ${index + 1} name`} required value={limit.key} onChange={(event) => updateLimit(index, (current) => ({ ...current, key: event.target.value }))} /></label>
-              <label>Amount<input inputMode="decimal" aria-label={`Spending limit ${index + 1} amount`} required value={limit.amount} onChange={(event) => updateLimit(index, (current) => ({ ...current, amount: event.target.value }))} /></label>
-              <label>Currency<select aria-label={`Spending limit ${index + 1} currency`} value={limit.currency} onChange={(event) => updateLimit(index, (current) => ({ ...current, currency: event.target.value as "GBP" | "INR" }))}><option>GBP</option><option>INR</option></select></label>
-              <button className="text-button danger" onClick={() => setForm({ ...form, spendingLimits: form.spendingLimits.filter((_, current) => current !== index) })} type="button">Remove</button>
+            {form.spendingLimits.map((limit, index) => <div className="limit-editor" key={limit.localID}>
+              <label>Limit name<input aria-label={`Spending limit ${index + 1} name`} required value={limit.key} onChange={(event) => updateLimit(limit.localID, (current) => ({ ...current, key: event.target.value }))} /></label>
+              <label>Amount<input inputMode="decimal" aria-label={`Spending limit ${index + 1} amount`} required value={limit.amount} onChange={(event) => updateLimit(limit.localID, (current) => ({ ...current, amount: event.target.value }))} /></label>
+              <label>Currency<select aria-label={`Spending limit ${index + 1} currency`} value={limit.currency} onChange={(event) => updateLimit(limit.localID, (current) => ({ ...current, currency: event.target.value as "GBP" | "INR" }))}><option>GBP</option><option>INR</option></select></label>
+              <button className="icon-button danger" aria-label={`Remove ${limit.key} spending limit`} title={`Remove ${limit.key} spending limit`} onClick={() => setForm({ ...form, spendingLimits: form.spendingLimits.filter((current) => current.localID !== limit.localID) })} type="button"><TrashIcon /></button>
             </div>)}
           </div>
         </section>
@@ -181,4 +218,30 @@ export function EditDashboardPage() {
       <footer>Finny · private by design</footer>
     </main>
   );
+}
+
+function CurrencyField({
+  asset,
+  type,
+  label,
+  onToggle,
+  onChange,
+}: {
+  asset: Asset;
+  type: "UKGBP" | "INDIAINR";
+  label: string;
+  onToggle: (assetID: number, type: "UKGBP" | "INDIAINR", enabled: boolean) => void;
+  onChange: (assetID: number, type: "UKGBP" | "INDIAINR", value: string) => void;
+}) {
+  const value = asset.values.find((item) => item.type === type);
+  return (
+    <label className="currency-option">
+      <span><input type="checkbox" checked={value !== undefined} disabled={value !== undefined && asset.values.length === 1} onChange={(event) => onToggle(asset.id, type, event.target.checked)} /> {label}</span>
+      {value && <input inputMode="decimal" aria-label={`${asset.name} ${label} value`} required value={value.value} onChange={(event) => onChange(asset.id, type, event.target.value)} />}
+    </label>
+  );
+}
+
+function TrashIcon() {
+  return <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false"><path d="M4 7h16M10 11v6m4-6v6M6 7l1 13h10l1-13M9 7V4h6v3" /></svg>;
 }

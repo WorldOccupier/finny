@@ -6,9 +6,10 @@ import (
 )
 
 type Asset struct {
-	ID     int64        `json:"id"`
-	Name   string       `json:"name"`
-	Values []AssetValue `json:"values"`
+	ID         int64        `json:"id"`
+	Name       string       `json:"name"`
+	Values     []AssetValue `json:"values"`
+	ValueTypes []ValueType  `json:"valueTypes,omitempty"`
 }
 
 func (a Asset) Validate() error {
