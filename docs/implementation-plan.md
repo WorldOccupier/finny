@@ -165,18 +165,18 @@ This is the staged implementation plan for Finny. Complete phases in order and c
 
 ## Phase 10 — Read-only dashboard UI
 
-- [ ] Add the dashboard API client.
-- [ ] Add loading, empty, and error states.
-- [ ] Add the combined net-worth card.
-- [ ] Add the GBP/INR display toggle.
-- [ ] Add the historical net-worth graph.
-- [ ] Add UK and India sections or tabs.
-- [ ] Add spending-limit display.
-- [ ] Add income display.
-- [ ] Test rendering of a complete API response.
-- [ ] Test empty and error states.
-- [ ] Test currency switching.
-- [ ] Review visual hierarchy.
+- [x] Add the dashboard API client.
+- [x] Add loading, empty, and error states.
+- [x] Add the combined net-worth card.
+- [x] Add the GBP/INR display toggle.
+- [x] Add the historical net-worth graph.
+- [x] Add UK and India sections or tabs.
+- [x] Add spending-limit display.
+- [x] Add income display.
+- [x] Test rendering of a complete API response.
+- [x] Test empty and error states.
+- [x] Test currency switching.
+- [x] Review visual hierarchy.
 
 ## Phase 11 — Edit dashboard UI
 
