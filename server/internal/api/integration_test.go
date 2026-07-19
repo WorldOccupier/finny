@@ -70,6 +70,7 @@ func TestDashboardAPIIntegrationConvertsAssetCurrencyMemberships(t *testing.T) {
 	if len(first.Assets[0].Values) != 2 {
 		t.Fatalf("first asset values = %+v", first.Assets[0].Values)
 	}
+	assertSavedAssetTypes(t, handler, []string{"UKGBP", "INDIAINR"})
 
 	gbpOnly := postDashboard(t, handler, "membership-gbp", []byte(`{"revision":1,"assets":[{"id":0,"name":"Savings","valueTypes":["UKGBP"],"values":[{"type":"UKGBP","value":"125"}]}],"fxRate":"100","spendingLimits":[],"income":{"userOneGBP":"0","userTwoGBP":"0"}}`))
 	if len(gbpOnly.Assets[0].Values) != 1 || gbpOnly.Assets[0].Values[0].Type != "UKGBP" {
@@ -78,10 +79,38 @@ func TestDashboardAPIIntegrationConvertsAssetCurrencyMemberships(t *testing.T) {
 	if len(gbpOnly.History[0].Assets[0].Values) != 2 {
 		t.Fatalf("GBP conversion changed history = %+v", gbpOnly.History[0].Assets[0].Values)
 	}
+	assertSavedAssetTypes(t, handler, []string{"UKGBP"})
 
 	inrOnly := postDashboard(t, handler, "membership-inr", []byte(`{"revision":2,"assets":[{"id":0,"name":"Savings","valueTypes":["INDIAINR"],"values":[{"type":"INDIAINR","value":"6500"}]}],"fxRate":"100","spendingLimits":[],"income":{"userOneGBP":"0","userTwoGBP":"0"}}`))
 	if len(inrOnly.Assets[0].Values) != 1 || inrOnly.Assets[0].Values[0].Type != "INDIAINR" {
 		t.Fatalf("INR-only asset = %+v", inrOnly.Assets[0].Values)
+	}
+	assertSavedAssetTypes(t, handler, []string{"INDIAINR"})
+}
+
+func assertSavedAssetTypes(t *testing.T, handler http.Handler, expectedTypes []string) {
+	t.Helper()
+	request := httptest.NewRequest(http.MethodGet, DASHBOARD_ROUTE, nil)
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusOK {
+		t.Fatalf("GET status = %d", response.Code)
+	}
+	var dashboard DashboardResponse
+	if err := json.NewDecoder(response.Body).Decode(&dashboard); err != nil {
+		t.Fatal(err)
+	}
+	if len(dashboard.Assets) != 1 || len(dashboard.Assets[0].Values) != len(expectedTypes) {
+		t.Fatalf("saved asset values = %+v", dashboard.Assets)
+	}
+	actualTypes := make(map[string]struct{}, len(dashboard.Assets[0].Values))
+	for _, value := range dashboard.Assets[0].Values {
+		actualTypes[string(value.Type)] = struct{}{}
+	}
+	for _, expectedType := range expectedTypes {
+		if _, found := actualTypes[expectedType]; !found {
+			t.Fatalf("saved asset value types = %v, missing %s", actualTypes, expectedType)
+		}
 	}
 }
 

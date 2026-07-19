@@ -8,6 +8,7 @@ interface AssetSectionProps {
 
 export function AssetSection({ assets, type }: AssetSectionProps) {
   const currency = currencyForType(type);
+  const sectionAssets = assets.filter((asset) => asset.values.some((value) => value.type === type));
   return (
     <section className="panel asset-panel">
       <div className="section-heading">
@@ -17,17 +18,17 @@ export function AssetSection({ assets, type }: AssetSectionProps) {
         </div>
         <span className="country-badge">{currency}</span>
       </div>
-      {assets.length === 0 ? (
+      {sectionAssets.length === 0 ? (
         <p className="muted">No {countryForType(type)} assets yet.</p>
       ) : (
         <div className="asset-list">
-          {assets.map((asset) => {
-            const value = asset.values.find((item) => item.type === type)?.value ?? "0";
+          {sectionAssets.map((asset) => {
+            const value = asset.values.find((item) => item.type === type);
             return (
               <div className="asset-row" key={asset.id}>
                 <div className="asset-icon">{asset.name.slice(0, 1).toUpperCase()}</div>
                 <span>{asset.name}</span>
-                <strong>{formatMoney(value, currency)}</strong>
+                <strong>{formatMoney(value!.value, currency)}</strong>
               </div>
             );
           })}

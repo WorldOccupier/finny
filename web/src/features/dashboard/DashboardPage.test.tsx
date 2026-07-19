@@ -66,6 +66,19 @@ describe("DashboardPage", () => {
     expect(screen.getByRole("img", { name: "Net worth history in INR" })).toBeInTheDocument();
   });
 
+  it("does not render an asset in an unselected currency section", async () => {
+    mockDashboardResponse({
+      ...response,
+      assets: [{ id: 0, name: "UK pension", values: [{ type: "UKGBP", value: "1000" }] }],
+    });
+    render(<DashboardPage />);
+
+    await waitFor(() => expect(screen.getByText("Good morning.")).toBeInTheDocument());
+    expect(screen.getAllByText("UK pension")).toHaveLength(1);
+    expect(screen.getByText("No India assets yet.")).toBeInTheDocument();
+    expect(screen.queryByText("₹0.00")).not.toBeInTheDocument();
+  });
+
   it.each([
     ["malformed response", { ...response, assets: [{ id: 0, name: "Savings", values: [{ type: "UNKNOWN", value: "1000" }] }] }],
     ["invalid decimal", { ...response, currentFxRate: "not-a-decimal" }],
