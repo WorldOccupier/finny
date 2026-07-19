@@ -35,11 +35,11 @@ export function Income({ income }: { income: IncomeTotals }) {
         <span className="country-badge">GBP</span>
       </div>
       <div className="detail-row">
-        <span>User one</span>
+        <span>Riva</span>
         <strong>{formatMoney(income.userOneGBP, "GBP")}</strong>
       </div>
       <div className="detail-row">
-        <span>User two</span>
+        <span>Hasini</span>
         <strong>{formatMoney(income.userTwoGBP, "GBP")}</strong>
       </div>
     </section>

@@ -408,7 +408,7 @@ footer {
 .limit-editor .icon-button {
   position: absolute;
   right: 0;
-  top: 0;
+  top: 1.7rem;
 }
 
 .asset-editor-heading label {
@@ -422,28 +422,28 @@ footer {
   grid-template-columns: repeat(2, 1fr);
 }
 
+.asset-currency-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 18px;
+  padding-right: 58px;
+}
+
+.asset-currency-fields > label {
+  max-width: 280px;
+}
+
 .limit-editor {
   align-items: end;
   border-bottom: 1px solid #282936;
+  padding-bottom: 12px;
   padding-right: 58px;
   position: relative;
-  padding-bottom: 12px;
 }
 
 .limit-editor label {
   flex: 1;
-}
-
-.currency-option > span {
-  align-items: center;
-  display: flex;
-  gap: 8px;
-}
-
-.currency-option > span input[type="checkbox"] {
-  accent-color: #a395ff;
-  min-height: 0;
-  width: auto;
 }
 
 label {
@@ -487,6 +487,12 @@ select:focus {
   color: #77748a;
   font-size: 0.8rem;
   margin: -5px 0 0;
+}
+
+.field-error {
+  color: #ffc6c8;
+  font-size: 0.82rem;
+  margin: -4px 0 0;
 }
 
 .secondary-button,
@@ -648,6 +654,8 @@ select:focus-visible {
   .asset-editor-heading .icon-button,
   .limit-editor .icon-button {
     position: absolute;
+    right: 0;
+    top: 1.7rem;
   }
 
   .panel {

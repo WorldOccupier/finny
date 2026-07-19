@@ -31,9 +31,9 @@ test.describe("dashboard browser workflow", () => {
   test("creates a first snapshot, carries values forward, and retains removed history", async ({ page }) => {
     await page.goto("/edit");
     await page.getByRole("button", { name: "+ Add asset" }).click();
-    await page.getByLabel("Asset name").fill("Emergency fund");
+    await page.getByLabel(/Asset \d+ name/).fill("Emergency fund");
     await page.getByLabel("Emergency fund United Kingdom · GBP value").fill("1000");
-    await page.getByRole("checkbox", { name: /India/ }).check();
+    await page.getByLabel("Emergency fund currency").selectOption("BOTH");
     await page.getByLabel("Emergency fund India · INR value").fill("50000");
     await page.getByLabel("Indian rupees per pound").fill("100");
     await page.getByRole("button", { name: "Save snapshot" }).click();
@@ -85,9 +85,9 @@ test.describe("dashboard browser workflow", () => {
 
     await page.goto("/edit");
     await page.getByRole("button", { name: "+ Add asset" }).click();
-    await page.getByLabel("Asset name").fill("Retry fund");
+    await page.getByLabel(/Asset \d+ name/).fill("Retry fund");
     await page.getByLabel("Retry fund United Kingdom · GBP value").fill("250");
-    await page.getByRole("checkbox", { name: /India/ }).check();
+    await page.getByLabel("Retry fund currency").selectOption("BOTH");
     await page.getByLabel("Retry fund India · INR value").fill("25000");
     await page.getByLabel("Indian rupees per pound").fill("100");
     await page.getByRole("button", { name: "Save snapshot" }).click();

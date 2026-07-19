@@ -15,6 +15,8 @@ type FormState = Pick<DashboardRequest, "revision" | "assets" | "fxRate" | "spen
 type EditableSpendingLimit = SpendingLimit & { localID: string };
 type EditableFormState = Omit<FormState, "spendingLimits"> & { spendingLimits: EditableSpendingLimit[] };
 type SaveAttempt = { fingerprint: string; key: string };
+type AssetCurrencySelection = "GBP" | "INR" | "BOTH";
+type AssetValueType = "UKGBP" | "INDIAINR";
 
 let nextLimitID = 0;
 
@@ -42,6 +44,27 @@ function toRequest(form: EditableFormState): FormState {
     ...form,
     spendingLimits: form.spendingLimits.map(({ localID: _localID, ...limit }) => limit),
   };
+}
+
+function selectedCurrencies(asset: Asset): AssetValueType[] {
+  return asset.valueTypes ?? asset.values.map((value) => value.type);
+}
+
+function currencySelection(asset: Asset): AssetCurrencySelection {
+  const currencies = selectedCurrencies(asset);
+  const hasGBP = currencies.includes("UKGBP");
+  const hasINR = currencies.includes("INDIAINR");
+  if (hasGBP && hasINR) return "BOTH";
+  return hasINR ? "INR" : "GBP";
+}
+
+function duplicateAssetIDs(assets: Asset[]): Set<number> {
+  const counts = new Map<string, number>();
+  for (const asset of assets) {
+    const name = asset.name.trim().toLocaleLowerCase();
+    counts.set(name, (counts.get(name) ?? 0) + 1);
+  }
+  return new Set(assets.filter((asset) => (counts.get(asset.name.trim().toLocaleLowerCase()) ?? 0) > 1).map((asset) => asset.id));
 }
 
 export function EditDashboardPage() {
@@ -89,7 +112,7 @@ export function EditDashboardPage() {
     const nextID = form.assets.reduce((highest, asset) => Math.max(highest, asset.id), -1) + 1;
     setForm({
       ...form,
-      assets: [...form.assets, { id: nextID, name: "New asset", valueTypes: ["UKGBP"], values: [{ type: "UKGBP", value: "0" }] }],
+      assets: [...form.assets, { id: nextID, name: "New asset", valueTypes: ["UKGBP"], values: [{ type: "UKGBP", value: "" }] }],
     });
   };
 
@@ -107,20 +130,22 @@ export function EditDashboardPage() {
     }));
   };
 
-  const toggleAssetCurrency = (assetID: number, type: "UKGBP" | "INDIAINR", enabled: boolean) => {
+  const updateAssetCurrencies = (assetID: number, selection: AssetCurrencySelection) => {
+    const types: AssetValueType[] = selection === "GBP" ? ["UKGBP"] : selection === "INR" ? ["INDIAINR"] : ["UKGBP", "INDIAINR"];
     updateAsset(assetID, (asset) => ({
       ...asset,
-      valueTypes: enabled
-        ? asset.valueTypes?.includes(type) ? asset.valueTypes : [...(asset.valueTypes ?? []), type]
-        : (asset.valueTypes ?? []).filter((item) => item !== type),
-      values: enabled
-        ? asset.values.some((item) => item.type === type) ? asset.values : [...asset.values, { type, value: "0" }]
-        : asset.values.filter((item) => item.type !== type),
+      valueTypes: types,
+      values: types.map((type) => asset.values.find((item) => item.type === type) ?? { type, value: "" }),
     }));
   };
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (duplicateAssetIDs(form.assets).size > 0) {
+      setMessage("Asset names must be unique, ignoring capitalisation and surrounding spaces.");
+      setMessageKind("error");
+      return;
+    }
     setStatus("saving");
     setMessage(undefined);
     const request = toRequest(form);
@@ -176,16 +201,14 @@ export function EditDashboardPage() {
               <fieldset className="asset-editor" key={asset.id}>
                 <legend>Asset {asset.id + 1}</legend>
                 <div className="asset-editor-heading">
-                  <label>Asset name<input aria-label="Asset name" required value={asset.name} onChange={(event) => updateAsset(asset.id, (current) => ({ ...current, name: event.target.value }))} /></label>
+                  <label>Asset name<input aria-label={`Asset ${asset.id + 1} name`} aria-describedby="duplicate-asset-names" aria-invalid={duplicateAssetIDs(form.assets).has(asset.id)} required value={asset.name} onChange={(event) => updateAsset(asset.id, (current) => ({ ...current, name: event.target.value }))} /></label>
                   <button className="icon-button danger" aria-label={`Remove ${asset.name}`} title={`Remove ${asset.name}`} onClick={() => setForm({ ...form, assets: form.assets.filter((current) => current.id !== asset.id) })} type="button"><TrashIcon /></button>
                 </div>
-                <div className="value-grid">
-                  <CurrencyField asset={asset} type="UKGBP" label="United Kingdom · GBP" onToggle={toggleAssetCurrency} onChange={updateAssetValue} />
-                  <CurrencyField asset={asset} type="INDIAINR" label="India · INR" onToggle={toggleAssetCurrency} onChange={updateAssetValue} />
-                </div>
+                <AssetCurrencyFields asset={asset} selection={currencySelection(asset)} onSelectionChange={updateAssetCurrencies} onChange={updateAssetValue} />
               </fieldset>
             ))}
           </div>
+          {duplicateAssetIDs(form.assets).size > 0 && <p className="field-error" id="duplicate-asset-names" role="alert">Asset names must be unique, ignoring capitalisation and surrounding spaces.</p>}
         </section>
         <div className="two-column editor-grid">
           <section className="panel form-panel">
@@ -196,8 +219,8 @@ export function EditDashboardPage() {
           <section className="panel form-panel">
             <div className="section-heading"><div><p className="eyebrow">Household</p><h2>Monthly income</h2></div><span className="country-badge">GBP</span></div>
             <div className="value-grid">
-              <label>User one<input inputMode="decimal" aria-label="User one income" required value={form.income.userOneGBP} onChange={(event) => setForm({ ...form, income: { ...form.income, userOneGBP: event.target.value } })} /></label>
-              <label>User two<input inputMode="decimal" aria-label="User two income" required value={form.income.userTwoGBP} onChange={(event) => setForm({ ...form, income: { ...form.income, userTwoGBP: event.target.value } })} /></label>
+              <label>Riva<input inputMode="decimal" aria-label="Riva income" required value={form.income.userOneGBP} onChange={(event) => setForm({ ...form, income: { ...form.income, userOneGBP: event.target.value } })} /></label>
+              <label>Hasini<input inputMode="decimal" aria-label="Hasini income" required value={form.income.userTwoGBP} onChange={(event) => setForm({ ...form, income: { ...form.income, userTwoGBP: event.target.value } })} /></label>
             </div>
           </section>
         </div>
@@ -220,25 +243,33 @@ export function EditDashboardPage() {
   );
 }
 
-function CurrencyField({
+function AssetCurrencyFields({
   asset,
-  type,
-  label,
-  onToggle,
+  selection,
+  onSelectionChange,
   onChange,
 }: {
   asset: Asset;
-  type: "UKGBP" | "INDIAINR";
-  label: string;
-  onToggle: (assetID: number, type: "UKGBP" | "INDIAINR", enabled: boolean) => void;
+  selection: AssetCurrencySelection;
+  onSelectionChange: (assetID: number, selection: AssetCurrencySelection) => void;
   onChange: (assetID: number, type: "UKGBP" | "INDIAINR", value: string) => void;
 }) {
-  const value = asset.values.find((item) => item.type === type);
+  const valueTypes: AssetValueType[] = selection === "GBP" ? ["UKGBP"] : selection === "INR" ? ["INDIAINR"] : ["UKGBP", "INDIAINR"];
   return (
-    <label className="currency-option">
-      <span><input type="checkbox" checked={value !== undefined} disabled={value !== undefined && asset.values.length === 1} onChange={(event) => onToggle(asset.id, type, event.target.checked)} /> {label}</span>
-      {value && <input inputMode="decimal" aria-label={`${asset.name} ${label} value`} required value={value.value} onChange={(event) => onChange(asset.id, type, event.target.value)} />}
-    </label>
+    <div className="asset-currency-fields">
+      <label>Currency<select aria-label={`${asset.name} currency`} value={selection} onChange={(event) => onSelectionChange(asset.id, event.target.value as AssetCurrencySelection)}>
+        <option value="GBP">GBP only</option>
+        <option value="INR">INR only</option>
+        <option value="BOTH">GBP + INR</option>
+      </select></label>
+      <div className="value-grid">
+        {valueTypes.map((type) => {
+          const value = asset.values.find((item) => item.type === type);
+          const label = type === "UKGBP" ? "United Kingdom · GBP" : "India · INR";
+          return <label key={type}>{label}<input inputMode="decimal" aria-label={`${asset.name} ${label} value`} required value={value?.value ?? ""} onChange={(event) => onChange(asset.id, type, event.target.value)} /></label>;
+        })}
+      </div>
+    </div>
   );
 }
 
