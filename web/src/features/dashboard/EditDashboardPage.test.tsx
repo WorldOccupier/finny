@@ -39,7 +39,7 @@ describe("EditDashboardPage", () => {
     fireEvent.change(screen.getByDisplayValue("Savings"), { target: { value: "House savings" } });
     fireEvent.change(screen.getByLabelText("House savings United Kingdom · GBP value"), { target: { value: "200" } });
     fireEvent.change(screen.getByLabelText("Indian rupees per pound"), { target: { value: "105" } });
-    fireEvent.change(screen.getByLabelText("Riva income"), { target: { value: "3200" } });
+    fireEvent.change(screen.getByLabelText("User One income"), { target: { value: "3200" } });
     fireEvent.click(screen.getByRole("button", { name: "+ Add limit" }));
     fireEvent.change(screen.getByLabelText("Spending limit 1 name"), { target: { value: "Fun" } });
     fireEvent.change(screen.getByLabelText("Spending limit 1 amount"), { target: { value: "250" } });

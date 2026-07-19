@@ -219,8 +219,8 @@ export function EditDashboardPage() {
           <section className="panel form-panel">
             <div className="section-heading"><div><p className="eyebrow">Household</p><h2>Monthly income</h2></div><span className="country-badge">GBP</span></div>
             <div className="value-grid">
-              <label>Riva<input inputMode="decimal" aria-label="Riva income" required value={form.income.userOneGBP} onChange={(event) => setForm({ ...form, income: { ...form.income, userOneGBP: event.target.value } })} /></label>
-              <label>Hasini<input inputMode="decimal" aria-label="Hasini income" required value={form.income.userTwoGBP} onChange={(event) => setForm({ ...form, income: { ...form.income, userTwoGBP: event.target.value } })} /></label>
+              <label>User One<input inputMode="decimal" aria-label="User One income" required value={form.income.userOneGBP} onChange={(event) => setForm({ ...form, income: { ...form.income, userOneGBP: event.target.value } })} /></label>
+              <label>User Two<input inputMode="decimal" aria-label="User Two income" required value={form.income.userTwoGBP} onChange={(event) => setForm({ ...form, income: { ...form.income, userTwoGBP: event.target.value } })} /></label>
             </div>
           </section>
         </div>
