@@ -65,8 +65,8 @@ export function DashboardPage() {
       </header>
       <section className="hero">
         <div>
-          <p className="eyebrow">Your financial picture</p>
-          <h1>Good morning.</h1>
+          <p className="eyebrow">Dashboard</p>
+          <h1>Your financial picture.</h1>
           <p className="hero-copy">A calm view of where your money is working for you.</p>
         </div>
         <span className="revision">Updated snapshot {data.revision}</span>

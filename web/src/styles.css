@@ -381,23 +381,45 @@ footer {
 .asset-editor {
   border: 1px solid #303044;
   border-radius: 14px;
+  min-width: 0;
   margin: 0;
-  padding: 18px;
+  padding: 12px 14px;
 }
 
-.asset-editor legend {
+.asset-editor-label {
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
   color: #77748a;
   font-size: 0.75rem;
+  height: 1px;
+  overflow: hidden;
   padding: 0 6px;
+  position: absolute;
   text-transform: uppercase;
+  white-space: nowrap;
+  width: 1px;
 }
 
-.asset-editor-heading,
+.asset-editor-row,
 .limit-editor,
 .form-actions {
   align-items: end;
   display: flex;
-  gap: 14px;
+  gap: 10px;
+}
+
+.asset-editor-row {
+  display: grid;
+  grid-template-columns: minmax(150px, 0.9fr) minmax(340px, 2fr) auto;
+}
+
+.asset-editor-row > label {
+  min-width: 0;
+}
+
+.asset-editor-row > .icon-button {
+  align-self: end;
+  margin-bottom: 0;
 }
 
 .asset-editor-heading {
@@ -411,11 +433,6 @@ footer {
   top: 1.7rem;
 }
 
-.asset-editor-heading label {
-  flex: 1;
-  padding-right: 58px;
-}
-
 .value-grid {
   display: grid;
   gap: 14px;
@@ -423,15 +440,21 @@ footer {
 }
 
 .asset-currency-fields {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  margin-top: 18px;
-  padding-right: 58px;
+  align-items: end;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(150px, 0.6fr) minmax(0, 1.4fr);
+  min-width: 0;
 }
 
 .asset-currency-fields > label {
-  max-width: 280px;
+  min-width: 0;
+}
+
+.asset-currency-fields .value-grid {
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(130px, 1fr));
+  min-width: 0;
 }
 
 .limit-editor {
@@ -640,6 +663,7 @@ select:focus-visible {
   }
 
   .asset-editor-heading,
+  .asset-editor-row,
   .limit-editor,
   .form-actions {
     align-items: stretch;
@@ -656,6 +680,25 @@ select:focus-visible {
     position: absolute;
     right: 0;
     top: 1.7rem;
+  }
+
+  .asset-currency-fields {
+    grid-template-columns: 1fr;
+    padding-right: 0;
+  }
+
+  .asset-editor-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .asset-editor-row > .asset-currency-fields {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .asset-currency-fields .value-grid {
+    grid-template-columns: 1fr;
+    width: 100%;
   }
 
   .panel {
