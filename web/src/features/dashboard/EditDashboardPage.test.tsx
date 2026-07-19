@@ -143,6 +143,10 @@ describe("EditDashboardPage", () => {
     fireEvent.change(currency, { target: { value: "INR" } });
     expect(screen.queryByLabelText("New asset United Kingdom · GBP value")).not.toBeInTheDocument();
     expect(screen.getByLabelText("New asset India · INR value")).toBeInTheDocument();
+    const assetGroup = screen.getByRole("group", { name: "Asset 1" });
+    expect(assetGroup).toHaveClass("asset-editor");
+    expect(assetGroup.querySelector(".asset-editor-row")).toBeInTheDocument();
+    expect(assetGroup.querySelector(".asset-currency-fields")).toBeInTheDocument();
   });
 
   it("converts an existing asset between currency memberships", async () => {

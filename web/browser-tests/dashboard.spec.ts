@@ -64,7 +64,7 @@ test.describe("dashboard browser workflow", () => {
     await expect(page.getByText("Your snapshot is saved.")).toBeVisible();
 
     await page.goto("/");
-    await expect(page.getByRole("heading", { name: "Good morning." })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Your financial picture." })).toBeVisible();
     await expect(page.getByText(/No .* assets yet/)).toHaveCount(2);
     await expect(page.getByRole("img", { name: /Net worth history/ })).toBeVisible();
     await expect(page.getByText("3 snapshots")).toBeVisible();

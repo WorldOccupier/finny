@@ -199,12 +199,12 @@ export function EditDashboardPage() {
           <div className="editor-list">
             {form.assets.map((asset) => (
               <fieldset className="asset-editor" key={asset.id}>
-                <legend>Asset {asset.id + 1}</legend>
-                <div className="asset-editor-heading">
+                <legend className="asset-editor-label">Asset {asset.id + 1}</legend>
+                <div className="asset-editor-row">
                   <label>Asset name<input aria-label={`Asset ${asset.id + 1} name`} aria-describedby="duplicate-asset-names" aria-invalid={duplicateAssetIDs(form.assets).has(asset.id)} required value={asset.name} onChange={(event) => updateAsset(asset.id, (current) => ({ ...current, name: event.target.value }))} /></label>
+                  <AssetCurrencyFields asset={asset} selection={currencySelection(asset)} onSelectionChange={updateAssetCurrencies} onChange={updateAssetValue} />
                   <button className="icon-button danger" aria-label={`Remove ${asset.name}`} title={`Remove ${asset.name}`} onClick={() => setForm({ ...form, assets: form.assets.filter((current) => current.id !== asset.id) })} type="button"><TrashIcon /></button>
                 </div>
-                <AssetCurrencyFields asset={asset} selection={currencySelection(asset)} onSelectionChange={updateAssetCurrencies} onChange={updateAssetValue} />
               </fieldset>
             ))}
           </div>

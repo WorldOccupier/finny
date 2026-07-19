@@ -27,7 +27,7 @@ describe("DashboardPage", () => {
     render(<DashboardPage />);
 
     expect(screen.getByText("Loading your dashboard")).toBeInTheDocument();
-    await waitFor(() => expect(screen.getByText("Good morning.")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Your financial picture.")).toBeInTheDocument());
     expect(screen.getAllByText("Savings")).toHaveLength(2);
     expect(screen.getByText("Spending limits")).toBeInTheDocument();
     expect(screen.getByText("Monthly income")).toBeInTheDocument();
@@ -59,7 +59,7 @@ describe("DashboardPage", () => {
   it("switches the combined display between GBP and INR", async () => {
     mockDashboardResponse();
     render(<DashboardPage />);
-    await waitFor(() => expect(screen.getByText("Good morning.")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Your financial picture.")).toBeInTheDocument());
     const inrButton = screen.getAllByRole("button", { name: "INR" })[0];
     fireEvent.click(inrButton);
     expect(screen.getAllByText("₹150,000.00").length).toBeGreaterThanOrEqual(2);
@@ -73,7 +73,7 @@ describe("DashboardPage", () => {
     });
     render(<DashboardPage />);
 
-    await waitFor(() => expect(screen.getByText("Good morning.")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Your financial picture.")).toBeInTheDocument());
     expect(screen.getAllByText("UK pension")).toHaveLength(1);
     expect(screen.getByText("No India assets yet.")).toBeInTheDocument();
     expect(screen.queryByText("₹0.00")).not.toBeInTheDocument();
@@ -96,13 +96,13 @@ describe("DashboardPage", () => {
     render(<DashboardPage />);
 
     await waitFor(() => expect(screen.getByText("Your dashboard is taking a moment")).toBeInTheDocument());
-    expect(screen.queryByText("Good morning.")).not.toBeInTheDocument();
+    expect(screen.queryByText("Your financial picture.")).not.toBeInTheDocument();
   });
 
   it("exposes the selected currency to keyboard and assistive technology users", async () => {
     mockDashboardResponse();
     render(<DashboardPage />);
-    await waitFor(() => expect(screen.getByText("Good morning.")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Your financial picture.")).toBeInTheDocument());
 
     const gbpButton = screen.getAllByRole("button", { name: "GBP" })[0];
     const inrButton = screen.getAllByRole("button", { name: "INR" })[0];
