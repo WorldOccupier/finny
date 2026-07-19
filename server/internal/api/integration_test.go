@@ -55,6 +55,110 @@ func TestDashboardAPIIntegrationCreatesLaterSnapshotAndPreservesHistory(t *testi
 	}
 }
 
+func TestDashboardAPIIntegrationReturnsConvertedCombinedTotalsAndFrozenHistory(t *testing.T) {
+	db, err := database.Open(context.Background(), filepath.Join(t.TempDir(), "finny.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	if err := database.Migrate(context.Background(), db); err != nil {
+		t.Fatal(err)
+	}
+	handler := NewDashboardHandler(database.NewSQLiteStore(db), slog.New(slog.NewTextHandler(io.Discard, nil)))
+
+	first := postDashboard(t, handler, "conversion-first", []byte(`{"revision":0,"assets":[{"id":1,"name":"Mixed savings","values":[{"type":"UKGBP","value":"225"},{"type":"INDIAINR","value":"900"}]}],"fxRate":"100","spendingLimits":[],"income":{"userOneGBP":"0","userTwoGBP":"0"}}`))
+	assertCombinedResponseTotals(t, first, "234", "23400")
+
+	second := postDashboard(t, handler, "conversion-second", []byte(`{"revision":1,"assets":[{"id":1,"name":"Mixed savings","values":[{"type":"UKGBP","value":"225"},{"type":"INDIAINR","value":"900"}]}],"fxRate":"200","spendingLimits":[],"income":{"userOneGBP":"0","userTwoGBP":"0"}}`))
+	assertCombinedResponseTotals(t, second, "229.5", "45900")
+	assertCombinedSnapshotTotals(t, second.History[0], "234", "23400")
+	assertCombinedSnapshotTotals(t, second.History[1], "229.5", "45900")
+
+	request := httptest.NewRequest(http.MethodGet, DASHBOARD_ROUTE, nil)
+	recorder := httptest.NewRecorder()
+	handler.ServeHTTP(recorder, request)
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("GET status = %d", recorder.Code)
+	}
+	var loaded DashboardResponse
+	if err := json.NewDecoder(recorder.Body).Decode(&loaded); err != nil {
+		t.Fatal(err)
+	}
+	assertCombinedResponseTotals(t, loaded, "229.5", "45900")
+	assertCombinedSnapshotTotals(t, loaded.History[0], "234", "23400")
+}
+
+func assertCombinedResponseTotals(t *testing.T, response DashboardResponse, wantGBP, wantINR string) {
+	t.Helper()
+	assertCombinedSnapshotTotals(t, SnapshotResponse{Totals: response.CurrentTotals}, wantGBP, wantINR)
+}
+
+func assertCombinedSnapshotTotals(t *testing.T, snapshot SnapshotResponse, wantGBP, wantINR string) {
+	t.Helper()
+	if len(snapshot.Totals.Combined) != 2 || snapshot.Totals.Combined[0].Value.String() != wantGBP || snapshot.Totals.Combined[1].Value.String() != wantINR {
+		t.Fatalf("combined totals = %+v, want GBP %s and INR %s", snapshot.Totals.Combined, wantGBP, wantINR)
+	}
+}
+
+func TestDashboardAPIIntegrationConvertsAssetCurrencyMemberships(t *testing.T) {
+	db, err := database.Open(context.Background(), filepath.Join(t.TempDir(), "finny.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	if err := database.Migrate(context.Background(), db); err != nil {
+		t.Fatal(err)
+	}
+	handler := NewDashboardHandler(database.NewSQLiteStore(db), slog.New(slog.NewTextHandler(io.Discard, nil)))
+
+	first := postDashboard(t, handler, "membership-first", []byte(`{"revision":0,"assets":[{"id":0,"name":"Savings","valueTypes":["UKGBP","INDIAINR"],"values":[{"type":"UKGBP","value":"100"},{"type":"INDIAINR","value":"5000"}]}],"fxRate":"100","spendingLimits":[],"income":{"userOneGBP":"0","userTwoGBP":"0"}}`))
+	if len(first.Assets[0].Values) != 2 {
+		t.Fatalf("first asset values = %+v", first.Assets[0].Values)
+	}
+	assertSavedAssetTypes(t, handler, []string{"UKGBP", "INDIAINR"})
+
+	gbpOnly := postDashboard(t, handler, "membership-gbp", []byte(`{"revision":1,"assets":[{"id":0,"name":"Savings","valueTypes":["UKGBP"],"values":[{"type":"UKGBP","value":"125"}]}],"fxRate":"100","spendingLimits":[],"income":{"userOneGBP":"0","userTwoGBP":"0"}}`))
+	if len(gbpOnly.Assets[0].Values) != 1 || gbpOnly.Assets[0].Values[0].Type != "UKGBP" {
+		t.Fatalf("GBP-only asset = %+v", gbpOnly.Assets[0].Values)
+	}
+	if len(gbpOnly.History[0].Assets[0].Values) != 2 {
+		t.Fatalf("GBP conversion changed history = %+v", gbpOnly.History[0].Assets[0].Values)
+	}
+	assertSavedAssetTypes(t, handler, []string{"UKGBP"})
+
+	inrOnly := postDashboard(t, handler, "membership-inr", []byte(`{"revision":2,"assets":[{"id":0,"name":"Savings","valueTypes":["INDIAINR"],"values":[{"type":"INDIAINR","value":"6500"}]}],"fxRate":"100","spendingLimits":[],"income":{"userOneGBP":"0","userTwoGBP":"0"}}`))
+	if len(inrOnly.Assets[0].Values) != 1 || inrOnly.Assets[0].Values[0].Type != "INDIAINR" {
+		t.Fatalf("INR-only asset = %+v", inrOnly.Assets[0].Values)
+	}
+	assertSavedAssetTypes(t, handler, []string{"INDIAINR"})
+}
+
+func assertSavedAssetTypes(t *testing.T, handler http.Handler, expectedTypes []string) {
+	t.Helper()
+	request := httptest.NewRequest(http.MethodGet, DASHBOARD_ROUTE, nil)
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusOK {
+		t.Fatalf("GET status = %d", response.Code)
+	}
+	var dashboard DashboardResponse
+	if err := json.NewDecoder(response.Body).Decode(&dashboard); err != nil {
+		t.Fatal(err)
+	}
+	if len(dashboard.Assets) != 1 || len(dashboard.Assets[0].Values) != len(expectedTypes) {
+		t.Fatalf("saved asset values = %+v", dashboard.Assets)
+	}
+	actualTypes := make(map[string]struct{}, len(dashboard.Assets[0].Values))
+	for _, value := range dashboard.Assets[0].Values {
+		actualTypes[string(value.Type)] = struct{}{}
+	}
+	for _, expectedType := range expectedTypes {
+		if _, found := actualTypes[expectedType]; !found {
+			t.Fatalf("saved asset value types = %v, missing %s", actualTypes, expectedType)
+		}
+	}
+}
+
 func postDashboard(t *testing.T, handler http.Handler, key string, body []byte) DashboardResponse {
 	t.Helper()
 	request := httptest.NewRequest(http.MethodPost, DASHBOARD_ROUTE, bytes.NewReader(body))

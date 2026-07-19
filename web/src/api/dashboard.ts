@@ -10,6 +10,7 @@ export interface Asset {
   id: number;
   name: string;
   values: AssetValue[];
+  valueTypes?: ValueType[];
 }
 
 export interface TotalValue {
@@ -117,7 +118,8 @@ function isAsset(value: unknown): value is Asset {
     value.name.trim().length > 0 &&
     Array.isArray(value.values) &&
     value.values.length > 0 &&
-    value.values.every(isAssetValue)
+    value.values.every(isAssetValue) &&
+    (value.valueTypes === undefined || (Array.isArray(value.valueTypes) && value.valueTypes.every(isValueType)))
   );
 }
 

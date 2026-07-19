@@ -72,6 +72,47 @@ func TestDashboardResponseFormatsLondonTimestampsAndPreservesDecimals(t *testing
 	}
 }
 
+func TestNewDashboardResponseRecalculatesCombinedTotalsForCurrentAndHistory(t *testing.T) {
+	uk := mustDecimal(t, "225")
+	india := mustDecimal(t, "900")
+	fxRate := mustDecimal(t, "100")
+	assets := []domain.Asset{{
+		ID:   1,
+		Name: "Mixed savings",
+		Values: []domain.AssetValue{
+			{Type: domain.UK_GBP, Value: uk},
+			{Type: domain.INDIA_INR, Value: india},
+		},
+	}}
+	staleTotals := domain.DashboardTotals{Combined: []domain.CombinedTotal{
+		{Currency: domain.CURRENCY_GBP, Value: uk},
+		{Currency: domain.CURRENCY_INR, Value: uk},
+	}}
+	dashboard := domain.Dashboard{
+		Assets:        assets,
+		CurrentFXRate: fxRate,
+		CurrentTotals: staleTotals,
+		History: []domain.Snapshot{{
+			ID:          1,
+			CommittedAt: time.Date(2026, time.July, 15, 12, 0, 0, 0, time.UTC),
+			FXRate:      fxRate,
+			Assets:      assets,
+			Totals:      staleTotals,
+		}},
+	}
+
+	response := NewDashboardResponse(dashboard)
+	assertCombinedTotals(t, response.CurrentTotals.Combined, "234", "23400")
+	assertCombinedTotals(t, response.History[0].Totals.Combined, "234", "23400")
+}
+
+func assertCombinedTotals(t *testing.T, totals []domain.CombinedTotal, wantGBP, wantINR string) {
+	t.Helper()
+	if len(totals) != 2 || totals[0].Value.String() != wantGBP || totals[1].Value.String() != wantINR {
+		t.Fatalf("combined totals = %+v, want GBP %s and INR %s", totals, wantGBP, wantINR)
+	}
+}
+
 func TestErrorStatusMapping(t *testing.T) {
 	for _, test := range []struct {
 		code   ErrorCode

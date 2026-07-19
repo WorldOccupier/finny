@@ -152,6 +152,16 @@ func validateInput(input SnapshotInput) error {
 			}
 			seenTypes[value.Type] = struct{}{}
 		}
+		seenSelectedTypes := make(map[domain.ValueType]struct{}, len(asset.ValueTypes))
+		for _, valueType := range asset.ValueTypes {
+			if !valueType.Valid() {
+				return fmt.Errorf("unsupported selected value type %q for asset %d", valueType, asset.ID)
+			}
+			if _, exists := seenSelectedTypes[valueType]; exists {
+				return fmt.Errorf("duplicate selected value type %q for asset %d", valueType, asset.ID)
+			}
+			seenSelectedTypes[valueType] = struct{}{}
+		}
 	}
 	return nil
 }
@@ -168,19 +178,42 @@ func resolveAssets(current domain.Dashboard, submitted []domain.Asset) ([]domain
 			values[value.Type] = value
 		}
 		old, exists := previous[asset.ID]
+		selected := make(map[domain.ValueType]struct{}, len(asset.ValueTypes))
+		if len(asset.ValueTypes) == 0 {
+			for valueType := range values {
+				selected[valueType] = struct{}{}
+			}
+		} else {
+			for _, valueType := range asset.ValueTypes {
+				selected[valueType] = struct{}{}
+			}
+		}
 		if exists {
 			for _, value := range old.Values {
-				if _, present := values[value.Type]; !present {
-					values[value.Type] = value
+				if _, chosen := selected[value.Type]; chosen {
+					if _, present := values[value.Type]; !present {
+						values[value.Type] = value
+					}
 				}
 			}
 		}
+		if len(values) == 0 {
+			return nil, fmt.Errorf("asset %d must have at least one value type", asset.ID)
+		}
+		asset.Values = make([]domain.AssetValue, 0, len(values))
 		for _, valueType := range []domain.ValueType{domain.UK_GBP, domain.INDIA_INR} {
-			if _, present := values[valueType]; !present {
-				return nil, fmt.Errorf("asset %d is missing value type %q", asset.ID, valueType)
+			if _, chosen := selected[valueType]; chosen {
+				value, present := values[valueType]
+				if !present {
+					return nil, fmt.Errorf("asset %d is missing selected value type %q", asset.ID, valueType)
+				}
+				asset.Values = append(asset.Values, value)
 			}
 		}
-		asset.Values = []domain.AssetValue{values[domain.UK_GBP], values[domain.INDIA_INR]}
+		asset.ValueTypes = make([]domain.ValueType, 0, len(asset.Values))
+		for _, value := range asset.Values {
+			asset.ValueTypes = append(asset.ValueTypes, value.Type)
+		}
 		resolved = append(resolved, asset)
 	}
 	return resolved, nil

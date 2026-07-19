@@ -31,6 +31,8 @@ describe("DashboardPage", () => {
     expect(screen.getAllByText("Savings")).toHaveLength(2);
     expect(screen.getByText("Spending limits")).toBeInTheDocument();
     expect(screen.getByText("Monthly income")).toBeInTheDocument();
+    expect(screen.getByLabelText("Net worth values in GBP")).toBeInTheDocument();
+    expect(screen.getAllByText("£1,500.00").length).toBeGreaterThanOrEqual(2);
   });
 
   it("renders the empty state", async () => {
@@ -60,8 +62,21 @@ describe("DashboardPage", () => {
     await waitFor(() => expect(screen.getByText("Good morning.")).toBeInTheDocument());
     const inrButton = screen.getAllByRole("button", { name: "INR" })[0];
     fireEvent.click(inrButton);
-    expect(screen.getAllByText("₹150,000.00")).toHaveLength(2);
+    expect(screen.getAllByText("₹150,000.00").length).toBeGreaterThanOrEqual(2);
     expect(screen.getByRole("img", { name: "Net worth history in INR" })).toBeInTheDocument();
+  });
+
+  it("does not render an asset in an unselected currency section", async () => {
+    mockDashboardResponse({
+      ...response,
+      assets: [{ id: 0, name: "UK pension", values: [{ type: "UKGBP", value: "1000" }] }],
+    });
+    render(<DashboardPage />);
+
+    await waitFor(() => expect(screen.getByText("Good morning.")).toBeInTheDocument());
+    expect(screen.getAllByText("UK pension")).toHaveLength(1);
+    expect(screen.getByText("No India assets yet.")).toBeInTheDocument();
+    expect(screen.queryByText("₹0.00")).not.toBeInTheDocument();
   });
 
   it.each([

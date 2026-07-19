@@ -9,7 +9,7 @@ import (
 	"github.com/WorldOccupier/finny/server/internal/domain"
 )
 
-func TestFirstSnapshotRequiresBothCountryValuesAndCalculatesTotals(t *testing.T) {
+func TestFirstSnapshotSupportsEitherCountryValueAndCalculatesTotals(t *testing.T) {
 	store := newTestStore(t)
 	now := time.Date(2026, time.January, 15, 12, 0, 0, 0, time.UTC)
 	service := NewService(store, func() time.Time { return now })
@@ -21,33 +21,32 @@ func TestFirstSnapshotRequiresBothCountryValuesAndCalculatesTotals(t *testing.T)
 		Assets: []domain.Asset{{ID: 1, Name: "Savings", Values: []domain.AssetValue{
 			{Type: domain.UK_GBP, Value: value100},
 			{Type: domain.INDIA_INR, Value: value500},
-		}}},
+		}}, {ID: 2, Name: "UK pension", Values: []domain.AssetValue{{Type: domain.UK_GBP, Value: value100}}}, {ID: 3, Name: "India fund", Values: []domain.AssetValue{{Type: domain.INDIA_INR, Value: value500}}}},
 		FXRate: fxRate,
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(dashboard.History) != 1 || len(dashboard.History[0].Assets) != 1 {
+	if len(dashboard.History) != 1 || len(dashboard.History[0].Assets) != 3 {
 		t.Fatalf("dashboard history = %+v", dashboard.History)
 	}
 	if dashboard.History[0].CommittedAt.Location() != domain.LondonLocation() {
 		t.Fatalf("snapshot location = %v", dashboard.History[0].CommittedAt.Location())
 	}
 	totals := dashboard.History[0].Totals
-	if totals.Country[0].Value.String() != "100" || totals.Country[1].Value.String() != "500" {
+	if totals.Country[0].Value.String() != "200" || totals.Country[1].Value.String() != "1000" {
 		t.Fatalf("country totals = %+v", totals.Country)
 	}
-	if totals.Combined[0].Value.String() != "350" || totals.Combined[1].Value.String() != "700" {
+	if totals.Combined[0].Value.String() != "700" || totals.Combined[1].Value.String() != "1400" {
 		t.Fatalf("combined totals = %+v", totals.Combined)
 	}
 }
 
-func TestFirstSnapshotRejectsMissingValue(t *testing.T) {
+func TestFirstSnapshotRejectsEmptyAssetValues(t *testing.T) {
 	store := newTestStore(t)
 	service := NewService(store, time.Now)
-	value := mustDecimal(t, "100")
 	_, err := service.Save(context.Background(), SnapshotInput{
-		Assets: []domain.Asset{{ID: 1, Name: "Incomplete", Values: []domain.AssetValue{{Type: domain.UK_GBP, Value: value}}}},
+		Assets: []domain.Asset{{ID: 1, Name: "Incomplete"}},
 		FXRate: mustDecimal(t, "2"),
 	})
 	if err == nil {
@@ -55,21 +54,21 @@ func TestFirstSnapshotRejectsMissingValue(t *testing.T) {
 	}
 }
 
-func TestLaterSnapshotCarriesForwardAndNewAssetsRequireBothValues(t *testing.T) {
+func TestLaterSnapshotCarriesForwardAndNewAssetsMayUseEitherValue(t *testing.T) {
 	store := newTestStore(t)
 	now := time.Date(2026, time.January, 15, 12, 0, 0, 0, time.UTC)
 	service := NewService(store, func() time.Time { return now })
 	uk := mustDecimal(t, "100")
 	india := mustDecimal(t, "500")
 	if _, err := service.Save(context.Background(), SnapshotInput{
-		Assets: []domain.Asset{{ID: 1, Name: "Savings", Values: []domain.AssetValue{{Type: domain.UK_GBP, Value: uk}, {Type: domain.INDIA_INR, Value: india}}}},
+		Assets: []domain.Asset{{ID: 1, Name: "Savings", ValueTypes: []domain.ValueType{domain.UK_GBP, domain.INDIA_INR}, Values: []domain.AssetValue{{Type: domain.UK_GBP, Value: uk}, {Type: domain.INDIA_INR, Value: india}}}},
 		FXRate: mustDecimal(t, "2"),
 	}); err != nil {
 		t.Fatal(err)
 	}
 	now = now.Add(time.Hour)
 	updated, err := service.Save(context.Background(), SnapshotInput{
-		Assets: []domain.Asset{{ID: 1, Name: "Savings", Values: []domain.AssetValue{{Type: domain.UK_GBP, Value: mustDecimal(t, "150")}}}},
+		Assets: []domain.Asset{{ID: 1, Name: "Savings", ValueTypes: []domain.ValueType{domain.UK_GBP, domain.INDIA_INR}, Values: []domain.AssetValue{{Type: domain.UK_GBP, Value: mustDecimal(t, "150")}}}},
 		FXRate: mustDecimal(t, "2"),
 	})
 	if err != nil {
@@ -85,12 +84,65 @@ func TestLaterSnapshotCarriesForwardAndNewAssetsRequireBothValues(t *testing.T) 
 		t.Fatalf("carried-forward asset = %+v", updated.Assets[0])
 	}
 	now = now.Add(time.Hour)
-	_, err = service.Save(context.Background(), SnapshotInput{
+	updated, err = service.Save(context.Background(), SnapshotInput{
 		Assets: []domain.Asset{{ID: 1, Name: "Savings", Values: []domain.AssetValue{{Type: domain.UK_GBP, Value: uk}, {Type: domain.INDIA_INR, Value: india}}}, {ID: 2, Name: "New asset", Values: []domain.AssetValue{{Type: domain.UK_GBP, Value: uk}}}},
 		FXRate: mustDecimal(t, "2"),
 	})
-	if err == nil {
-		t.Fatal("incomplete new asset succeeded")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(updated.Assets) != 2 || len(updated.Assets[1].Values) != 1 || updated.Assets[1].Values[0].Type != domain.UK_GBP {
+		t.Fatalf("single-currency new asset = %+v", updated.Assets[1])
+	}
+}
+
+func TestLaterSnapshotCurrencyMembershipCanConvertBothDirections(t *testing.T) {
+	store := newTestStore(t)
+	now := time.Date(2026, time.January, 15, 12, 0, 0, 0, time.UTC)
+	service := NewService(store, func() time.Time { return now })
+	uk := mustDecimal(t, "100")
+	india := mustDecimal(t, "500")
+	assets := []domain.Asset{{
+		ID:         1,
+		Name:       "Savings",
+		ValueTypes: []domain.ValueType{domain.UK_GBP, domain.INDIA_INR},
+		Values:     []domain.AssetValue{{Type: domain.UK_GBP, Value: uk}, {Type: domain.INDIA_INR, Value: india}},
+	}}
+	if _, err := service.Save(context.Background(), SnapshotInput{Assets: assets, FXRate: mustDecimal(t, "2")}); err != nil {
+		t.Fatal(err)
+	}
+
+	now = now.Add(time.Hour)
+	gbpOnly := []domain.Asset{{
+		ID:         1,
+		Name:       "Savings",
+		ValueTypes: []domain.ValueType{domain.UK_GBP},
+		Values:     []domain.AssetValue{{Type: domain.UK_GBP, Value: mustDecimal(t, "125")}},
+	}}
+	dashboard, err := service.Save(context.Background(), SnapshotInput{Assets: gbpOnly, FXRate: mustDecimal(t, "2")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := dashboard.Assets[0].Values; len(got) != 1 || got[0].Type != domain.UK_GBP {
+		t.Fatalf("GBP-only conversion = %+v", got)
+	}
+	if len(dashboard.History[0].Assets[0].Values) != 2 {
+		t.Fatalf("historical values were changed during GBP-only conversion = %+v", dashboard.History[0].Assets[0].Values)
+	}
+
+	now = now.Add(time.Hour)
+	inrOnly := []domain.Asset{{
+		ID:         1,
+		Name:       "Savings",
+		ValueTypes: []domain.ValueType{domain.INDIA_INR},
+		Values:     []domain.AssetValue{{Type: domain.INDIA_INR, Value: mustDecimal(t, "650")}},
+	}}
+	dashboard, err = service.Save(context.Background(), SnapshotInput{Assets: inrOnly, FXRate: mustDecimal(t, "2")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := dashboard.Assets[0].Values; len(got) != 1 || got[0].Type != domain.INDIA_INR {
+		t.Fatalf("INR-only conversion = %+v", got)
 	}
 }
 

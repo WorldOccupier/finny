@@ -1,5 +1,5 @@
 import type { CombinedTotal, Currency } from "../../api/dashboard";
-import { formatMoney } from "./format";
+import { combinedTotalValue, formatMoney } from "./format";
 
 interface NetWorthCardProps {
   totals: CombinedTotal[];
@@ -8,7 +8,7 @@ interface NetWorthCardProps {
 }
 
 export function NetWorthCard({ totals, currency, onCurrencyChange }: NetWorthCardProps) {
-  const total = totals.find((item) => item.currency === currency)?.value ?? "0";
+  const total = combinedTotalValue(totals, currency) ?? "0";
 
   return (
     <section className="net-worth-card">
