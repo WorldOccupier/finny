@@ -20,6 +20,7 @@ It does not own persistent business data, database access, exchange-rate calcula
 web/
 ├── src/
 │   ├── api/                    # HTTP client functions
+│   ├── App.tsx                 # / and /edit route selection
 │   ├── components/             # Shared UI components
 │   ├── features/
 │   │   ├── dashboard/
@@ -64,6 +65,16 @@ docker compose up web server
 
 The web container runs Vite with the source tree mounted for hot reload. The production build remains a Vite concern. The Go server will not serve `web/dist`.
 
+The `/edit` route loads the complete dashboard graph into a controlled form. Saving submits the current revision and one persisted `Idempotency-Key` for that form operation; retrying after a lost response reuses the key, while a successful response or intentional form change starts a new operation. Successful responses replace the form state with the committed dashboard. Validation errors keep the edited values in place, while revision conflicts offer an explicit reload of the latest dashboard.
+
+Browser-level checks use Playwright against a real Go server and Vite process:
+
+```bash
+npm run test:browser
+```
+
+The clean-install frontend checks pass with `npm ci --ignore-scripts`. A clean isolated copy was also verified with `docker compose up web server --build -d`; the Go health endpoint and Vite HTML shell both responded successfully. Temporary host ports may be needed when the default development ports are already occupied. `docker compose config` is used to validate the Compose configuration.
+
 ## UI principles
 
 - Make the combined current net worth prominent.
@@ -71,3 +82,4 @@ The web container runs Vite with the source tree mounted for hot reload. The pro
 - Keep country names in headings, not repeated in asset row labels.
 - Show the correct currency for each country section.
 - Keep forms clear about whether a value is historical, current, or a monthly limit.
+- Keep decimal values as strings in form state and API payloads; do not convert financial values through floating point.

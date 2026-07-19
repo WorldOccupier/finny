@@ -56,10 +56,23 @@ export interface DashboardResponse {
   income: IncomeTotals;
 }
 
+export interface DashboardRequest {
+  revision: number;
+  assets: Asset[];
+  fxRate: string;
+  spendingLimits: SpendingLimit[];
+  income: IncomeTotals;
+}
+
 export class DashboardApiError extends Error {
-  constructor(message: string) {
+  readonly status?: number;
+  readonly code?: string;
+
+  constructor(message: string, status?: number, code?: string) {
     super(message);
     this.name = "DashboardApiError";
+    this.status = status;
+    this.code = code;
   }
 }
 
@@ -218,4 +231,50 @@ export async function fetchDashboard(signal?: AbortSignal): Promise<DashboardRes
     if (error instanceof DashboardApiError) throw error;
     throw new DashboardApiError("The dashboard response was not valid.");
   }
+}
+
+export function createIdempotencyKey(): string {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+export async function saveDashboard(
+  request: DashboardRequest,
+  idempotencyKey = createIdempotencyKey(),
+): Promise<DashboardResponse> {
+  let response: Response;
+  try {
+    response = await fetch("/api/dashboard", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Idempotency-Key": idempotencyKey,
+      },
+      body: JSON.stringify(request),
+    });
+  } catch {
+    throw new DashboardApiError("We could not save your dashboard right now.");
+  }
+
+  let body: unknown;
+  try {
+    body = await response.json();
+  } catch {
+    throw new DashboardApiError("The server returned an invalid response.", response.status);
+  }
+
+  if (!response.ok) {
+    const error = isRecord(body) && isRecord(body.error) ? body.error : undefined;
+    throw new DashboardApiError(
+      typeof error?.message === "string" ? error.message : "We could not save your dashboard right now.",
+      response.status,
+      typeof error?.code === "string" ? error.code : undefined,
+    );
+  }
+  if (!isDashboardResponse(body)) {
+    throw new DashboardApiError("The saved dashboard response was not valid.", response.status);
+  }
+  return body;
 }

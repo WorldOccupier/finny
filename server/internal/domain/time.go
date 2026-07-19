@@ -26,5 +26,5 @@ func ParseLondonTimestamp(value string) (time.Time, error) {
 }
 
 func FormatLondonTimestamp(value time.Time) string {
-	return value.In(londonLocation).Format(time.RFC3339)
+	return value.In(londonLocation).Format(time.RFC3339Nano)
 }

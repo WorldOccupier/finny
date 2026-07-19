@@ -1,0 +1,73 @@
+package api
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"io"
+	"log/slog"
+	"net/http"
+	"net/http/httptest"
+	"path/filepath"
+	"testing"
+
+	"github.com/WorldOccupier/finny/server/internal/database"
+)
+
+func TestDashboardAPIIntegrationCreatesLaterSnapshotAndPreservesHistory(t *testing.T) {
+	db, err := database.Open(context.Background(), filepath.Join(t.TempDir(), "finny.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	if err := database.Migrate(context.Background(), db); err != nil {
+		t.Fatal(err)
+	}
+	handler := NewDashboardHandler(database.NewSQLiteStore(db), slog.New(slog.NewTextHandler(io.Discard, nil)))
+
+	firstBody := []byte(`{"revision":0,"assets":[{"id":0,"name":"Savings","values":[{"type":"UKGBP","value":"100"},{"type":"INDIAINR","value":"5000"}]}],"fxRate":"100","spendingLimits":[],"income":{"userOneGBP":"3000","userTwoGBP":"2500"}}`)
+	first := postDashboard(t, handler, "integration-first", firstBody)
+	if first.Revision != 1 || len(first.History) != 1 {
+		t.Fatalf("first dashboard = revision %d, history %d", first.Revision, len(first.History))
+	}
+
+	secondBody := []byte(`{"revision":1,"assets":[],"fxRate":"110","spendingLimits":[],"income":{"userOneGBP":"3100","userTwoGBP":"2500"}}`)
+	second := postDashboard(t, handler, "integration-second", secondBody)
+	if second.Revision != 2 || len(second.History) != 2 || len(second.Assets) != 0 {
+		t.Fatalf("second dashboard = revision %d, history %d, assets %d", second.Revision, len(second.History), len(second.Assets))
+	}
+	if second.History[0].Assets[0].Name != "Savings" {
+		t.Fatal("removed asset was not retained in historical snapshot")
+	}
+
+	request := httptest.NewRequest(http.MethodGet, DASHBOARD_ROUTE, nil)
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusOK {
+		t.Fatalf("GET status = %d", response.Code)
+	}
+	var loaded DashboardResponse
+	if err := json.NewDecoder(response.Body).Decode(&loaded); err != nil {
+		t.Fatal(err)
+	}
+	if loaded.CurrentFXRate.String() != "110" || loaded.History[0].FXRate.String() != "100" {
+		t.Fatalf("FX history was not frozen: current %s, first %s", loaded.CurrentFXRate, loaded.History[0].FXRate)
+	}
+}
+
+func postDashboard(t *testing.T, handler http.Handler, key string, body []byte) DashboardResponse {
+	t.Helper()
+	request := httptest.NewRequest(http.MethodPost, DASHBOARD_ROUTE, bytes.NewReader(body))
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set(IDEMPOTENCY_KEY_HEADER, key)
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusOK {
+		t.Fatalf("POST status = %d, body = %s", response.Code, response.Body)
+	}
+	var dashboard DashboardResponse
+	if err := json.NewDecoder(response.Body).Decode(&dashboard); err != nil {
+		t.Fatal(err)
+	}
+	return dashboard
+}
