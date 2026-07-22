@@ -38,3 +38,9 @@ web/dist/
 # Editor/IDE
 # .idea/
 # .vscode/
+
+web/test-results
+finny.db
+.DS_STORE
+.codex
+graphify-out/
