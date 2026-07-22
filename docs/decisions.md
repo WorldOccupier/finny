@@ -54,7 +54,19 @@ This file records decisions that should remain stable across implementation sess
 - Income is one GBP total per user.
 - INR income totals are not included in the POC.
 - Spending limits are persisted configurable key/value records with a currency.
-- Bank transaction imports and categorization are deferred.
+
+### Transactions and statement imports
+
+- Transaction imports are introduced after the net-worth POC as a separate domain.
+- The initial household has two persistent users, represented by `user_one` and `user_two` until authentication is added.
+- Accounts have `user_one`, `user_two`, or `joint` ownership; joint-account transactions are visible to both users.
+- Statement importer identity is stored separately from account ownership.
+- Imported transactions support GBP and INR and use signed `shopspring/decimal` amounts.
+- Debits are negative and credits are positive.
+- Transaction dates and statement periods use `Europe/London`.
+- Transaction fingerprints use unambiguous normalized field encoding and retain source-row identity for repeated rows within one statement.
+- CSV/XLSX parsing, persistence, API endpoints, search, aggregation, and UI work proceed in the ordered implementation phases.
+- Transaction categorization remains deferred.
 
 ## Change log
 
