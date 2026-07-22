@@ -40,17 +40,29 @@ func (h *ImportHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case SPENDING_SUMMARY_ROUTE:
 		h.summary(w, r)
 	default:
-		h.transactions(w, r)
+		writeError(w, ERROR_CODE_NOT_FOUND, "route not found")
 	}
 }
 
 func (h *ImportHandler) summary(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeError(w, ERROR_CODE_INVALID_JSON, "method not allowed")
+		return
+	}
 	items, err := h.service.Summary(r.Context(), r.URL.Query().Get("accountId"))
 	if err != nil {
 		writeError(w, ERROR_CODE_INTERNAL, "summary could not be loaded")
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"summary": items})
+	period := r.URL.Query().Get("period")
+	if period == "" {
+		period = "month"
+	}
+	if period != "day" && period != "week" && period != "month" && period != "year" {
+		writeError(w, ERROR_CODE_VALIDATION, "period must be day, week, month, or year")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"period": period, "summary": items})
 }
 
 func (h *ImportHandler) preview(w http.ResponseWriter, r *http.Request) {
@@ -87,6 +99,10 @@ func (h *ImportHandler) preview(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ImportHandler) confirm(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeError(w, ERROR_CODE_INVALID_JSON, "method not allowed")
+		return
+	}
 	var request struct {
 		Token string `json:"token"`
 	}
@@ -106,6 +122,10 @@ func (h *ImportHandler) confirm(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"statement": statement, "importedRows": count})
 }
 func (h *ImportHandler) statements(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeError(w, ERROR_CODE_INVALID_JSON, "method not allowed")
+		return
+	}
 	items, err := h.service.Statements(r.Context())
 	if err != nil {
 		writeError(w, ERROR_CODE_INTERNAL, "statements could not be loaded")
@@ -114,15 +134,54 @@ func (h *ImportHandler) statements(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"statements": items})
 }
 func (h *ImportHandler) transactions(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeError(w, ERROR_CODE_INVALID_JSON, "method not allowed")
+		return
+	}
 	items, err := h.service.Transactions(r.Context(), r.URL.Query().Get("accountId"))
 	if err != nil {
 		writeError(w, ERROR_CODE_INTERNAL, "transactions could not be loaded")
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"transactions": items})
+	query := r.URL.Query()
+	text := strings.ToLower(query.Get("q"))
+	currency := query.Get("currency")
+	filtered := items[:0]
+	for _, item := range items {
+		if text != "" && !strings.Contains(strings.ToLower(item.Description), text) && !strings.Contains(strings.ToLower(item.Reference), text) {
+			continue
+		}
+		if currency != "" && string(item.Currency) != currency {
+			continue
+		}
+		filtered = append(filtered, item)
+	}
+	page, _ := strconv.Atoi(query.Get("page"))
+	size, _ := strconv.Atoi(query.Get("pageSize"))
+	if page < 1 {
+		page = 1
+	}
+	if size < 1 || size > 100 {
+		size = 50
+	}
+	start := (page - 1) * size
+	if start > len(filtered) {
+		start = len(filtered)
+	}
+	end := start + size
+	if end > len(filtered) {
+		end = len(filtered)
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"transactions": filtered[start:end], "page": page, "pageSize": size, "total": len(filtered)})
 }
 
 func mappingFromForm(r *http.Request, header *multipart.FileHeader, _ multipart.File) (importpreview.ImportRequest, error) {
+	if strings.TrimSpace(r.FormValue("accountId")) == "" {
+		return importpreview.ImportRequest{}, errors.New("accountId is required")
+	}
+	if !strings.HasSuffix(strings.ToLower(header.Filename), ".csv") && !strings.HasSuffix(strings.ToLower(header.Filename), ".xlsx") {
+		return importpreview.ImportRequest{}, errors.New("file must be CSV or XLSX")
+	}
 	get := func(name string) int { value, _ := strconv.Atoi(r.FormValue(name)); return value }
 	return importpreview.ImportRequest{Filename: header.Filename, AccountID: r.FormValue("accountId"), StatementID: r.FormValue("statementId"), Mapping: importpreview.ColumnMapping{Date: get("date"), Description: get("description"), Amount: get("amount"), Debit: get("debit"), Credit: get("credit"), Currency: get("currency"), Reference: get("reference")}}, nil
 }

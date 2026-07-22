@@ -67,6 +67,8 @@ The web container runs Vite with the source tree mounted for hot reload. The pro
 
 The `/edit` route loads the complete dashboard graph into a controlled form. Saving submits the current revision and one persisted `Idempotency-Key` for that form operation; retrying after a lost response reuses the key, while a successful response or intentional form change starts a new operation. Successful responses replace the form state with the committed dashboard. Validation errors keep the edited values in place, while revision conflicts offer an explicit reload of the latest dashboard.
 
+The `/spending` route uploads CSV/XLSX statements, previews valid and invalid rows, and confirms an import through the statement API.
+
 Browser-level checks use Playwright against a real Go server and Vite process:
 
 ```bash
