@@ -71,6 +71,7 @@ This file records decisions that should remain stable across implementation sess
 - Import previews are held in the API process with single-use random tokens; confirmation persists statement metadata and accepted transactions atomically.
 - File checksums reject repeated statement imports. No-reference transactions with matching fingerprints are suppressed when reimported; source rows within one statement remain distinct.
 - Transaction listing supports account, text, currency, and page/page-size filters. Summary responses accept day, week, month, and year period labels.
+- Transaction visibility is filtered by the requested user and account ownership. Summary periods use Europe/London calendar boundaries and an optional ISO date anchor.
 
 ## Change log
 

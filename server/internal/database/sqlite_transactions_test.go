@@ -41,3 +41,30 @@ func TestTransactionPersistenceAndSummary(t *testing.T) {
 		t.Fatalf("summary = %+v", summary)
 	}
 }
+
+func TestSaveImportRollsBackStatementAndEarlierTransactionsOnFailure(t *testing.T) {
+	store := newTestStore(t)
+	ctx := context.Background()
+	if err := store.SaveAccount(ctx, domain.Account{ID: "checking", BankSource: "Bank", AccountLabel: "Current", Currency: domain.CURRENCY_GBP, Owner: domain.OWNERSHIP_JOINT}); err != nil {
+		t.Fatal(err)
+	}
+	statement := domain.Statement{ID: "rollback", AccountID: "checking", ImportedBy: domain.USER_ONE, Filename: "statement.csv", Format: domain.STATEMENT_FORMAT_CSV, Checksum: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", PeriodStart: time.Date(2026, 7, 1, 0, 0, 0, 0, domain.LondonLocation()), PeriodEnd: time.Date(2026, 7, 31, 0, 0, 0, 0, domain.LondonLocation()), Status: domain.STATEMENT_STATUS_IMPORTED, ImportedRows: 2}
+	transactions := []domain.Transaction{
+		{ID: "rollback:2", AccountID: "checking", StatementID: "rollback", Date: statement.PeriodStart, Amount: decimal.RequireFromString("1"), Currency: domain.CURRENCY_GBP, Description: "valid", SourceRow: 2, Fingerprint: "valid"},
+		{ID: "rollback:3", AccountID: "checking", StatementID: "rollback", Date: statement.PeriodStart, Amount: decimal.RequireFromString("1"), Currency: domain.Currency("USD"), Description: "invalid", SourceRow: 3, Fingerprint: "invalid"},
+	}
+	if err := store.SaveImport(ctx, statement, transactions); err == nil {
+		t.Fatal("invalid import was accepted")
+	}
+	statements, err := store.ListStatements(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	loaded, err := store.ListTransactions(ctx, "checking")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(statements) != 0 || len(loaded) != 0 {
+		t.Fatalf("rollback left statements=%+v transactions=%+v", statements, loaded)
+	}
+}

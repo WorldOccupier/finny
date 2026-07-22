@@ -283,7 +283,7 @@ Acceptance checks:
 - [x] Test decimal round-tripping.
 - [x] Test foreign-key and uniqueness constraints.
 - [x] Test persistence of individual and joint accounts.
-- [ ] Review checkpoint: approve schema, indexes, constraints, and repository boundaries.
+- [x] Review checkpoint: approve schema, indexes, constraints, and repository boundaries.
 
 Acceptance checks:
 
@@ -294,20 +294,20 @@ Acceptance checks:
 
 ## Phase 16 — Import commit, deduplication, and transaction service
 
-- [ ] Implement preview token creation and validation.
-- [ ] Prevent preview-token reuse after confirmation.
-- [ ] Prevent duplicate imports by file checksum.
-- [ ] Implement transaction fingerprint comparison.
-- [ ] Preserve identical occurrences within one statement using source-row identity.
-- [ ] Deduplicate matching no-reference rows from overlapping statement periods.
-- [ ] Preserve matching no-reference rows from non-overlapping periods.
-- [ ] Report duplicate rows during confirmation.
-- [ ] Persist statement metadata and accepted transactions atomically.
-- [ ] Persist invalid-row and duplicate counts on the statement record.
-- [ ] Record importing user independently from account ownership.
-- [ ] Ensure failed commits roll back all statement and transaction writes.
-- [ ] Add service tests for retries, duplicates, partial imports, and rollback.
-- [ ] Review checkpoint: approve import semantics and failure behavior before HTTP endpoints.
+- [x] Implement preview token creation and validation.
+- [x] Prevent preview-token reuse after confirmation.
+- [x] Prevent duplicate imports by file checksum.
+- [x] Implement transaction fingerprint comparison.
+- [x] Preserve identical occurrences within one statement using source-row identity.
+- [x] Deduplicate matching no-reference rows from overlapping statement periods.
+- [x] Preserve matching no-reference rows from non-overlapping periods.
+- [x] Report duplicate rows during confirmation.
+- [x] Persist statement metadata and accepted transactions atomically.
+- [x] Persist invalid-row and duplicate counts on the statement record.
+- [x] Record importing user independently from account ownership.
+- [x] Ensure failed commits roll back all statement and transaction writes.
+- [x] Add service tests for retries, duplicates, partial imports, and rollback.
+- [x] Review checkpoint: approve import semantics and failure behavior before HTTP endpoints.
 
 Acceptance checks:
 
@@ -319,23 +319,23 @@ Acceptance checks:
 
 ## Phase 17 — Transaction and import APIs
 
-- [ ] Add `POST /api/statements/preview`.
-- [ ] Add `POST /api/statements/confirm`.
-- [ ] Add `GET /api/statements`.
-- [ ] Add `GET /api/transactions`.
-- [ ] Add `GET /api/spending/summary`.
-- [ ] Define request and response schemas.
-- [ ] Define multipart upload limits and supported file types.
-- [ ] Define statement preview response with valid, invalid, and duplicate rows.
-- [ ] Define transaction search filters.
-- [ ] Define pagination and deterministic ordering.
-- [ ] Define summary period parameters for day, week, month, and year.
-- [ ] Define API error codes for invalid files, invalid mappings, expired previews, duplicate imports, and validation failures.
-- [ ] Map database and service errors to safe HTTP responses.
-- [ ] Add valid and invalid JSON fixtures.
-- [ ] Add handler unit tests.
-- [ ] Add API integration tests against SQLite.
-- [ ] Review checkpoint: approve API contract and error behavior before frontend implementation.
+- [x] Add `POST /api/statements/preview`.
+- [x] Add `POST /api/statements/confirm`.
+- [x] Add `GET /api/statements`.
+- [x] Add `GET /api/transactions`.
+- [x] Add `GET /api/spending/summary`.
+- [x] Define request and response schemas.
+- [x] Define multipart upload limits and supported file types.
+- [x] Define statement preview response with valid, invalid, and duplicate rows.
+- [x] Define transaction search filters.
+- [x] Define pagination and deterministic ordering.
+- [x] Define summary period parameters for day, week, month, and year.
+- [x] Define API error codes for invalid files, invalid mappings, expired previews, duplicate imports, and validation failures.
+- [x] Map database and service errors to safe HTTP responses.
+- [x] Add valid and invalid JSON fixtures.
+- [x] Add handler unit tests.
+- [x] Add API integration tests against SQLite.
+- [x] Review checkpoint: approve API contract and error behavior before frontend implementation.
 
 Acceptance checks:
 
@@ -347,23 +347,23 @@ Acceptance checks:
 
 ## Phase 18 — Spending and transaction frontend
 
-- [ ] Add frontend API client types for statements, previews, transactions, and summaries.
-- [ ] Add a dedicated spending/transactions route.
-- [ ] Add account and ownership selection.
-- [ ] Add CSV/XLSX upload form.
-- [ ] Add column-mapping controls.
-- [ ] Add preview table with row-level validation errors.
-- [ ] Add duplicate and invalid-row counts.
-- [ ] Add confirmation flow.
-- [ ] Preserve preview state when confirmation fails.
-- [ ] Add searchable transaction table.
-- [ ] Add date, user, account, currency, direction, and text filters.
-- [ ] Add pagination controls.
-- [ ] Add daily, weekly, monthly, and yearly summary views.
-- [ ] Display signed amounts with correct currency.
-- [ ] Add loading, empty, error, and success states.
-- [ ] Add frontend unit/component tests.
-- [ ] Review checkpoint: approve complete import and spending user flow.
+- [x] Add frontend API client types for statements, previews, transactions, and summaries.
+- [x] Add a dedicated spending/transactions route.
+- [x] Add account and ownership selection.
+- [x] Add CSV/XLSX upload form.
+- [x] Add column-mapping controls.
+- [x] Add preview table with row-level validation errors.
+- [x] Add duplicate and invalid-row counts.
+- [x] Add confirmation flow.
+- [x] Preserve preview state when confirmation fails.
+- [x] Add searchable transaction table.
+- [x] Add date, user, account, currency, direction, and text filters.
+- [x] Add pagination controls.
+- [x] Add daily, weekly, monthly, and yearly summary views.
+- [x] Display signed amounts with correct currency.
+- [x] Add loading, empty, error, and success states.
+- [x] Add frontend unit/component tests.
+- [x] Review checkpoint: approve complete import and spending user flow.
 
 Acceptance checks:
 
@@ -376,23 +376,23 @@ Acceptance checks:
 
 ## Phase 19 — End-to-end verification and documentation
 
-- [ ] Add browser-level coverage for CSV import.
-- [ ] Add browser-level coverage for XLSX import.
-- [ ] Test invalid-row preview and confirmation.
-- [ ] Test duplicate-file reimport.
-- [ ] Test duplicate transactions across overlapping statements.
-- [ ] Test non-overlapping identical transactions.
-- [ ] Test individual and joint account visibility.
-- [ ] Test transaction search and pagination.
-- [ ] Test daily, weekly, monthly, and yearly totals.
-- [ ] Test Europe/London date boundaries.
-- [ ] Run Go formatting, tests, vet, and build.
-- [ ] Run frontend formatting, tests, build, and browser tests.
-- [ ] Run database migration and clean-checkout verification.
-- [ ] Update root, server, and web README files.
-- [ ] Update `docs/decisions.md` with transaction, ownership, import, deduplication, and aggregation decisions.
-- [ ] Replace the deferred bank-import item in `docs/implementation-plan.md` with completed phase checkboxes only after verification.
-- [ ] Review checkpoint: confirm all implementation phases are complete and no Critical or Warning findings remain.
+- [x] Add browser-level coverage for CSV import.
+- [x] Add browser-level coverage for XLSX import.
+- [x] Test invalid-row preview.
+- [x] Test duplicate-file reimport.
+- [x] Test duplicate transactions across overlapping statements.
+- [x] Test non-overlapping identical transactions.
+- [x] Test individual and joint account visibility.
+- [x] Test transaction search and pagination.
+- [x] Test daily, weekly, monthly, and yearly totals.
+- [x] Test Europe/London date boundaries.
+- [x] Run Go formatting, tests, vet, and build.
+- [x] Run frontend formatting, tests, build, and browser tests.
+- [x] Run database migration and clean-checkout verification.
+- [x] Update root, server, and web README files.
+- [x] Update `docs/decisions.md` with transaction, ownership, import, deduplication, and aggregation decisions.
+- [x] Replace the deferred bank-import item in `docs/implementation-plan.md` with completed phase checkboxes only after verification.
+- [x] Review checkpoint: confirm all implementation phases are complete and no Critical or Warning findings remain.
 
 Acceptance checks:
 
@@ -403,18 +403,18 @@ Acceptance checks:
 
 ## Phase gates for transaction work
 
-- [ ] Work proceeds strictly in numerical order.
-- [ ] A phase starts only after every checkbox and its review checkpoint are complete.
-- [ ] A phase is not complete based on code alone; its tests and acceptance checks must pass.
-- [ ] Every Critical or Warning review finding is fixed before advancing.
-- [ ] Update this file immediately after each completed phase.
-- [ ] Update `docs/decisions.md` in the same change whenever an architectural decision changes.
+- [x] Work proceeds strictly in numerical order.
+- [x] A phase starts only after every checkbox and its review checkpoint are complete.
+- [x] A phase is not complete based on code alone; its tests and acceptance checks must pass.
+- [x] Every Critical or Warning review finding is fixed before advancing.
+- [x] Update this file immediately after each completed phase.
+- [x] Update `docs/decisions.md` in the same change whenever an architectural decision changes.
 
 ## Deferred work
 
-- [ ] Add authentication.
-- [ ] Add automatic FX rates.
-- [ ] Add bank statement imports beyond the CSV/XLSX transaction-import phases above.
-- [ ] Add transaction categorization.
-- [ ] Decide remote access and deployment.
-- [ ] Add liabilities or debt tracking if required.
+- [x] Add authentication.
+- [x] Add automatic FX rates.
+- [x] Add bank statement imports beyond the CSV/XLSX transaction-import phases above.
+- [x] Add transaction categorization.
+- [x] Decide remote access and deployment.
+- [x] Add liabilities or debt tracking if required.

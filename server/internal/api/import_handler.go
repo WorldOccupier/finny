@@ -19,6 +19,7 @@ const (
 	STATEMENTS_CONFIRM_ROUTE = "/api/statements/confirm"
 	STATEMENTS_ROUTE         = "/api/statements"
 	TRANSACTIONS_ROUTE       = "/api/transactions"
+	ACCOUNTS_ROUTE           = "/api/accounts"
 	SPENDING_SUMMARY_ROUTE   = "/api/spending/summary"
 	MAX_IMPORT_SIZE          = 10 << 20
 )
@@ -39,6 +40,10 @@ func (h *ImportHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		h.statements(w, r)
 	case SPENDING_SUMMARY_ROUTE:
 		h.summary(w, r)
+	case TRANSACTIONS_ROUTE:
+		h.transactions(w, r)
+	case ACCOUNTS_ROUTE:
+		h.accounts(w, r)
 	default:
 		writeError(w, ERROR_CODE_NOT_FOUND, "route not found")
 	}
@@ -49,17 +54,17 @@ func (h *ImportHandler) summary(w http.ResponseWriter, r *http.Request) {
 		writeError(w, ERROR_CODE_INVALID_JSON, "method not allowed")
 		return
 	}
-	items, err := h.service.Summary(r.Context(), r.URL.Query().Get("accountId"))
-	if err != nil {
-		writeError(w, ERROR_CODE_INTERNAL, "summary could not be loaded")
-		return
-	}
 	period := r.URL.Query().Get("period")
 	if period == "" {
 		period = "month"
 	}
 	if period != "day" && period != "week" && period != "month" && period != "year" {
 		writeError(w, ERROR_CODE_VALIDATION, "period must be day, week, month, or year")
+		return
+	}
+	items, err := h.service.SummaryPeriod(r.Context(), userFromRequest(r), r.URL.Query().Get("accountId"), period, r.URL.Query().Get("date"))
+	if err != nil {
+		writeError(w, ERROR_CODE_VALIDATION, err.Error())
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"period": period, "summary": items})
@@ -90,7 +95,7 @@ func (h *ImportHandler) preview(w http.ResponseWriter, r *http.Request) {
 		writeError(w, ERROR_CODE_VALIDATION, err.Error())
 		return
 	}
-	p, err := h.service.Preview(data, request, domain.UserID(valueOr(r.FormValue("importedBy"), string(domain.USER_ONE))))
+	p, err := h.service.Preview(data, request, userFromRequest(r))
 	if err != nil {
 		writeError(w, ERROR_CODE_VALIDATION, err.Error())
 		return
@@ -112,7 +117,7 @@ func (h *ImportHandler) confirm(w http.ResponseWriter, r *http.Request) {
 	}
 	statement, count, err := h.service.Confirm(r.Context(), request.Token)
 	if errors.Is(err, importservice.ErrDuplicateStatement) {
-		writeError(w, ERROR_CODE_VALIDATION, "statement already imported")
+		writeError(w, ERROR_CODE_DUPLICATE_IMPORT, "statement already imported")
 		return
 	}
 	if err != nil {
@@ -138,7 +143,7 @@ func (h *ImportHandler) transactions(w http.ResponseWriter, r *http.Request) {
 		writeError(w, ERROR_CODE_INVALID_JSON, "method not allowed")
 		return
 	}
-	items, err := h.service.Transactions(r.Context(), r.URL.Query().Get("accountId"))
+	items, err := h.service.VisibleTransactions(r.Context(), userFromRequest(r), r.URL.Query().Get("accountId"))
 	if err != nil {
 		writeError(w, ERROR_CODE_INTERNAL, "transactions could not be loaded")
 		return
@@ -146,12 +151,21 @@ func (h *ImportHandler) transactions(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	text := strings.ToLower(query.Get("q"))
 	currency := query.Get("currency")
+	direction := query.Get("direction")
+	from := query.Get("from")
+	to := query.Get("to")
 	filtered := items[:0]
 	for _, item := range items {
 		if text != "" && !strings.Contains(strings.ToLower(item.Description), text) && !strings.Contains(strings.ToLower(item.Reference), text) {
 			continue
 		}
 		if currency != "" && string(item.Currency) != currency {
+			continue
+		}
+		if direction == "debit" && !item.Amount.IsNegative() || direction == "credit" && item.Amount.IsNegative() {
+			continue
+		}
+		if from != "" && item.Date.Format("2006-01-02") < from || to != "" && item.Date.Format("2006-01-02") > to {
 			continue
 		}
 		filtered = append(filtered, item)
@@ -175,6 +189,33 @@ func (h *ImportHandler) transactions(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"transactions": filtered[start:end], "page": page, "pageSize": size, "total": len(filtered)})
 }
 
+func (h *ImportHandler) accounts(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeError(w, ERROR_CODE_INVALID_JSON, "method not allowed")
+		return
+	}
+	items, err := h.service.Accounts(r.Context())
+	if err != nil {
+		writeError(w, ERROR_CODE_INTERNAL, "accounts could not be loaded")
+		return
+	}
+	visible := items[:0]
+	for _, item := range items {
+		if domain.VisibleTo(item, userFromRequest(r)) {
+			visible = append(visible, item)
+		}
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"accounts": visible})
+}
+
+func userFromRequest(r *http.Request) domain.UserID {
+	user := domain.UserID(valueOr(r.URL.Query().Get("user"), r.FormValue("importedBy")))
+	if user == "" {
+		return domain.USER_ONE
+	}
+	return user
+}
+
 func mappingFromForm(r *http.Request, header *multipart.FileHeader, _ multipart.File) (importpreview.ImportRequest, error) {
 	if strings.TrimSpace(r.FormValue("accountId")) == "" {
 		return importpreview.ImportRequest{}, errors.New("accountId is required")
@@ -183,7 +224,11 @@ func mappingFromForm(r *http.Request, header *multipart.FileHeader, _ multipart.
 		return importpreview.ImportRequest{}, errors.New("file must be CSV or XLSX")
 	}
 	get := func(name string) int { value, _ := strconv.Atoi(r.FormValue(name)); return value }
-	return importpreview.ImportRequest{Filename: header.Filename, AccountID: r.FormValue("accountId"), StatementID: r.FormValue("statementId"), Mapping: importpreview.ColumnMapping{Date: get("date"), Description: get("description"), Amount: get("amount"), Debit: get("debit"), Credit: get("credit"), Currency: get("currency"), Reference: get("reference")}}, nil
+	statementID := r.FormValue("statementId")
+	if statementID == "" {
+		statementID = "preview"
+	}
+	return importpreview.ImportRequest{Filename: header.Filename, AccountID: r.FormValue("accountId"), StatementID: statementID, Mapping: importpreview.ColumnMapping{Date: get("date"), Description: get("description"), Amount: get("amount"), Debit: get("debit"), Credit: get("credit"), Currency: get("currency"), Reference: get("reference")}}, nil
 }
 func valueOr(value, fallback string) string {
 	if value == "" {

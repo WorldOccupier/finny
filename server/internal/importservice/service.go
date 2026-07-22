@@ -13,6 +13,7 @@ import (
 	"github.com/WorldOccupier/finny/server/internal/database"
 	"github.com/WorldOccupier/finny/server/internal/domain"
 	"github.com/WorldOccupier/finny/server/internal/importpreview"
+	"github.com/shopspring/decimal"
 )
 
 var ErrPreviewNotFound = errors.New("preview not found")
@@ -46,6 +47,78 @@ func (s *Service) Accounts(ctx context.Context) ([]domain.Account, error) {
 }
 func (s *Service) Transactions(ctx context.Context, accountID string) ([]domain.Transaction, error) {
 	return s.store.ListTransactions(ctx, accountID)
+}
+
+func (s *Service) VisibleTransactions(ctx context.Context, user domain.UserID, accountID string) ([]domain.Transaction, error) {
+	accounts, err := s.store.ListAccounts(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var result []domain.Transaction
+	for _, account := range accounts {
+		if (accountID != "" && account.ID != accountID) || !domain.VisibleTo(account, user) {
+			continue
+		}
+		items, err := s.store.ListTransactions(ctx, account.ID)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, items...)
+	}
+	return result, nil
+}
+
+func (s *Service) SummaryPeriod(ctx context.Context, user domain.UserID, accountID, period, anchor string) ([]database.TransactionSummary, error) {
+	items, err := s.VisibleTransactions(ctx, user, accountID)
+	if err != nil {
+		return nil, err
+	}
+	location, err := time.LoadLocation("Europe/London")
+	if err != nil {
+		return nil, err
+	}
+	point := time.Now().In(location)
+	if anchor != "" {
+		point, err = time.ParseInLocation("2006-01-02", anchor, location)
+		if err != nil {
+			return nil, fmt.Errorf("invalid summary date")
+		}
+	}
+	start := point
+	switch period {
+	case "day":
+		start = time.Date(point.Year(), point.Month(), point.Day(), 0, 0, 0, 0, location)
+	case "week":
+		start = time.Date(point.Year(), point.Month(), point.Day(), 0, 0, 0, 0, location)
+		start = start.AddDate(0, 0, -int((start.Weekday()+6)%7))
+	case "month":
+		start = time.Date(point.Year(), point.Month(), 1, 0, 0, 0, 0, location)
+	case "year":
+		start = time.Date(point.Year(), time.January, 1, 0, 0, 0, 0, location)
+	default:
+		return nil, fmt.Errorf("period must be day, week, month, or year")
+	}
+	end := start.AddDate(0, 0, 1)
+	if period == "week" {
+		end = start.AddDate(0, 0, 7)
+	}
+	if period == "month" {
+		end = start.AddDate(0, 1, 0)
+	}
+	if period == "year" {
+		end = start.AddDate(1, 0, 0)
+	}
+	totals := map[domain.Currency]decimal.Decimal{}
+	for _, item := range items {
+		if !item.Date.Before(start) && item.Date.Before(end) {
+			totals[item.Currency] = totals[item.Currency].Add(item.Amount)
+		}
+	}
+	result := make([]database.TransactionSummary, 0, len(totals))
+	for currency, amount := range totals {
+		result = append(result, database.TransactionSummary{Currency: currency, Amount: domain.Decimal{Decimal: amount}})
+	}
+	return result, nil
 }
 func (s *Service) Summary(ctx context.Context, accountID string) ([]database.TransactionSummary, error) {
 	return s.store.SummarizeTransactions(ctx, accountID)

@@ -119,6 +119,9 @@ const (
 	ERROR_CODE_IDEMPOTENCY_CONFLICT    ErrorCode = "idempotency_conflict"
 	ERROR_CODE_NOT_FOUND               ErrorCode = "not_found"
 	ERROR_CODE_INTERNAL                ErrorCode = "internal_error"
+	ERROR_CODE_DUPLICATE_IMPORT        ErrorCode = "duplicate_import"
+	ERROR_CODE_EXPIRED_PREVIEW         ErrorCode = "expired_preview"
+	ERROR_CODE_INVALID_FILE            ErrorCode = "invalid_file"
 )
 
 type ErrorResponse struct {

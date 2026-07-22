@@ -83,6 +83,7 @@ func newServerWithStore(port int, logger *slog.Logger, store database.Store) *ht
 	mux.Handle(api.STATEMENTS_CONFIRM_ROUTE, imports)
 	mux.Handle(api.STATEMENTS_ROUTE, imports)
 	mux.Handle(api.TRANSACTIONS_ROUTE, imports)
+	mux.Handle(api.ACCOUNTS_ROUTE, imports)
 	mux.Handle(api.SPENDING_SUMMARY_ROUTE, imports)
 
 	return &http.Server{
