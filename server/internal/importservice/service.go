@@ -18,6 +18,9 @@ import (
 var ErrPreviewNotFound = errors.New("preview not found")
 var ErrPreviewUsed = errors.New("preview already confirmed")
 var ErrDuplicateStatement = errors.New("statement already imported")
+var ErrPreviewExpired = errors.New("preview expired")
+
+const PREVIEW_TTL = time.Hour
 
 type Preview struct {
 	Token      string
@@ -29,9 +32,10 @@ type Preview struct {
 	Format     domain.StatementFormat
 }
 type Service struct {
-	store    database.Store
-	mu       sync.Mutex
-	previews map[string]*Preview
+	store      database.Store
+	mu         sync.Mutex
+	previews   map[string]*Preview
+	confirming map[string]bool
 }
 
 func (s *Service) Statements(ctx context.Context) ([]domain.Statement, error) {
@@ -48,7 +52,7 @@ func (s *Service) Summary(ctx context.Context, accountID string) ([]database.Tra
 }
 
 func New(store database.Store) *Service {
-	return &Service{store: store, previews: make(map[string]*Preview)}
+	return &Service{store: store, previews: make(map[string]*Preview), confirming: make(map[string]bool)}
 }
 
 func (s *Service) Preview(data []byte, request importpreview.ImportRequest, importedBy domain.UserID) (Preview, error) {
@@ -78,11 +82,21 @@ func (s *Service) Confirm(ctx context.Context, token string) (domain.Statement, 
 		s.mu.Unlock()
 		return domain.Statement{}, 0, ErrPreviewNotFound
 	}
+	if time.Since(p.CreatedAt) > PREVIEW_TTL {
+		delete(s.previews, token)
+		s.mu.Unlock()
+		return domain.Statement{}, 0, ErrPreviewExpired
+	}
+	if s.confirming[token] {
+		s.mu.Unlock()
+		return domain.Statement{}, 0, ErrPreviewUsed
+	}
+	s.confirming[token] = true
+	defer func() { s.mu.Lock(); delete(s.confirming, token); s.mu.Unlock() }()
 	if p.Result.PeriodStart.IsZero() {
 		s.mu.Unlock()
 		return domain.Statement{}, 0, fmt.Errorf("preview has no valid period")
 	}
-	delete(s.previews, token)
 	s.mu.Unlock()
 	accounts, err := s.store.ListAccounts(ctx)
 	if err != nil {
@@ -107,12 +121,7 @@ func (s *Service) Confirm(ctx context.Context, token string) (domain.Statement, 
 			return domain.Statement{}, 0, ErrDuplicateStatement
 		}
 	}
-	statementID := fmt.Sprintf("statement-%d", len(statements)+1)
-	for _, t := range p.Result.Transactions {
-		t.StatementID = statementID
-		t.ID = fmt.Sprintf("%s:%d", statementID, t.SourceRow)
-		t.Fingerprint = domain.TransactionFingerprint(t)
-	}
+	statementID := fmt.Sprintf("statement-%s", token)
 	transactions := make([]domain.Transaction, len(p.Result.Transactions))
 	copy(transactions, p.Result.Transactions)
 	for i := range transactions {
@@ -130,7 +139,7 @@ func (s *Service) Confirm(ctx context.Context, token string) (domain.Statement, 
 		duplicate := false
 		if item.Reference == "" {
 			for _, old := range existing {
-				if old.Reference == "" && old.Fingerprint == item.Fingerprint && old.Date.Equal(item.Date) {
+				if old.Reference == "" && old.Fingerprint == item.Fingerprint && old.Date.Equal(item.Date) && overlaps(item.Date, p.Result.PeriodStart, p.Result.PeriodEnd, statements, old.StatementID) {
 					duplicate = true
 					break
 				}
@@ -147,5 +156,17 @@ func (s *Service) Confirm(ctx context.Context, token string) (domain.Statement, 
 	if err := s.store.SaveImport(ctx, statement, transactions); err != nil {
 		return domain.Statement{}, 0, err
 	}
+	s.mu.Lock()
+	delete(s.previews, token)
+	s.mu.Unlock()
 	return statement, len(transactions), nil
+}
+
+func overlaps(date, start, end time.Time, statements []domain.Statement, statementID string) bool {
+	for _, statement := range statements {
+		if statement.ID == statementID && !date.Before(statement.PeriodStart) && !date.After(statement.PeriodEnd) && !end.Before(statement.PeriodStart) && !start.After(statement.PeriodEnd) {
+			return true
+		}
+	}
+	return false
 }

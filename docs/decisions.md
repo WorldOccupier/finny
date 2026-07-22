@@ -68,6 +68,9 @@ This file records decisions that should remain stable across implementation sess
 - CSV parsing uses the Go standard library; XLSX parsing uses `github.com/xuri/excelize/v2`.
 - CSV/XLSX parsing, persistence, API endpoints, search, aggregation, and UI work proceed in the ordered implementation phases.
 - Transaction categorization remains deferred.
+- Import previews are held in the API process with single-use random tokens; confirmation persists statement metadata and accepted transactions atomically.
+- File checksums reject repeated statement imports. No-reference transactions with matching fingerprints are suppressed when reimported; source rows within one statement remain distinct.
+- Transaction listing supports account, text, currency, and page/page-size filters. Summary responses accept day, week, month, and year period labels.
 
 ## Change log
 

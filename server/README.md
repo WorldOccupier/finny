@@ -132,7 +132,9 @@ The schema package defines the exact JSON contract used by the handlers in later
 
 All financial values are JSON strings. Asset values identify their country and currency through `UKGBP`/`GBP` and `INDIAINR`/`INR`; spending limits carry an explicit `GBP` or `INR` currency. The `Idempotency-Key` header is required for POST and accepts a trimmed value from 1 through 255 characters. Error bodies always use `{ "error": { "code": "...", "message": "..." } }`. Invalid request, validation, currency, decimal, asset-value, and idempotency-key errors use `400`; missing resources use `404`; revision and idempotency conflicts use `409`; unexpected failures use `500`.
 
-Bank transaction import and transaction categorization are intentionally outside the POC API.
+Transaction categorization remains outside the POC API.
+
+Transaction imports use `POST /api/statements/preview` with a multipart `file` and column indexes, followed by `POST /api/statements/confirm` with the preview token. Statement and transaction reads are available at `/api/statements`, `/api/transactions`, and `/api/spending/summary`.
 
 ## Planned domain rules
 
