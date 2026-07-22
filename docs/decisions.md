@@ -65,6 +65,7 @@ This file records decisions that should remain stable across implementation sess
 - Debits are negative and credits are positive.
 - Transaction dates and statement periods use `Europe/London`.
 - Transaction fingerprints use unambiguous normalized field encoding and retain source-row identity for repeated rows within one statement.
+- CSV parsing uses the Go standard library; XLSX parsing uses `github.com/xuri/excelize/v2`.
 - CSV/XLSX parsing, persistence, API endpoints, search, aggregation, and UI work proceed in the ordered implementation phases.
 - Transaction categorization remains deferred.
 
