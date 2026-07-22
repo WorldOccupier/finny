@@ -27,6 +27,12 @@ type Store interface {
 	SaveIncome(context.Context, domain.IncomeTotals) error
 	GetIdempotencyResult(context.Context, string) (IdempotencyResult, error)
 	SaveIdempotencyResult(context.Context, IdempotencyResult) error
+	SaveAccount(context.Context, domain.Account) error
+	ListAccounts(context.Context) ([]domain.Account, error)
+	SaveStatement(context.Context, domain.Statement) error
+	SaveTransactions(context.Context, []domain.Transaction) error
+	ListTransactions(context.Context, string) ([]domain.Transaction, error)
+	SummarizeTransactions(context.Context, string) ([]TransactionSummary, error)
 }
 
 var _ Store = (*SQLiteStore)(nil)

@@ -25,6 +25,7 @@ func TestOpenAndMigrateEmptyDatabase(t *testing.T) {
 		"schema_migrations", "assets", "snapshots", "snapshot_asset_values",
 		"snapshot_totals", "spending_limits", "income_totals", "current_fx",
 		"dashboard_revision", "idempotency_keys",
+		"users", "accounts", "statements", "transactions",
 	} {
 		assertExists(t, db, "table", table)
 	}
@@ -32,6 +33,8 @@ func TestOpenAndMigrateEmptyDatabase(t *testing.T) {
 		"idx_assets_active", "idx_snapshots_committed_at",
 		"idx_snapshot_asset_values_asset", "idx_snapshot_totals_snapshot",
 		"idx_idempotency_keys_created_at",
+		"idx_accounts_owner", "idx_statements_account", "idx_transactions_account_date",
+		"idx_transactions_currency", "idx_transactions_fingerprint", "idx_transactions_statement",
 	} {
 		assertExists(t, db, "index", index)
 	}
