@@ -14,6 +14,7 @@ import (
 
 	"github.com/WorldOccupier/finny/server/internal/api"
 	"github.com/WorldOccupier/finny/server/internal/database"
+	"github.com/WorldOccupier/finny/server/internal/importservice"
 )
 
 const (
@@ -77,6 +78,12 @@ func newServerWithStore(port int, logger *slog.Logger, store database.Store) *ht
 	mux := http.NewServeMux()
 	mux.HandleFunc(HEALTH_ROUTE, app.health)
 	mux.Handle(api.DASHBOARD_ROUTE, api.NewDashboardHandler(store, logger))
+	imports := api.NewImportHandler(importservice.New(store))
+	mux.Handle(api.STATEMENTS_PREVIEW_ROUTE, imports)
+	mux.Handle(api.STATEMENTS_CONFIRM_ROUTE, imports)
+	mux.Handle(api.STATEMENTS_ROUTE, imports)
+	mux.Handle(api.TRANSACTIONS_ROUTE, imports)
+	mux.Handle(api.SPENDING_SUMMARY_ROUTE, imports)
 
 	return &http.Server{
 		Addr:              ":" + strconv.Itoa(port),
