@@ -239,21 +239,21 @@ Acceptance checks:
 
 ## Phase 14 — CSV/XLSX parsing and import preview
 
-- [ ] Select existing or standard-library-compatible CSV parsing support.
-- [ ] Add XLSX parsing using the smallest suitable existing dependency or approved dependency.
-- [ ] Define column mapping for date, description, debit, credit, signed amount, currency, and reference.
-- [ ] Support signed-amount files.
-- [ ] Support separate debit and credit columns.
-- [ ] Normalize debits as negative and credits as positive.
-- [ ] Reject rows where both debit and credit are populated.
-- [ ] Validate required mappings before parsing.
-- [ ] Return row-level validation errors without aborting valid rows.
-- [ ] Return parsed rows with source row numbers.
-- [ ] Calculate file checksum and statement period.
-- [ ] Build a preview result containing valid rows, invalid rows, and summary counts.
-- [ ] Add parser tests for representative CSV and XLSX files.
-- [ ] Add tests for malformed files, missing columns, invalid dates, invalid amounts, and unsupported currencies.
-- [ ] Review checkpoint: approve parser behavior and preview contract before database integration.
+- [x] Select existing or standard-library-compatible CSV parsing support.
+- [x] Add XLSX parsing using the smallest suitable existing dependency or approved dependency.
+- [x] Define column mapping for date, description, debit, credit, signed amount, currency, and reference.
+- [x] Support signed-amount files.
+- [x] Support separate debit and credit columns.
+- [x] Normalize debits as negative and credits as positive.
+- [x] Reject rows where both debit and credit are populated.
+- [x] Validate required mappings before parsing.
+- [x] Return row-level validation errors without aborting valid rows.
+- [x] Return parsed rows with source row numbers.
+- [x] Calculate file checksum and statement period.
+- [x] Build a preview result containing valid rows, invalid rows, and summary counts.
+- [x] Add parser tests for representative CSV and XLSX files.
+- [x] Add tests for malformed files, missing columns, invalid dates, invalid amounts, and unsupported currencies.
+- [x] Review checkpoint: approve parser behavior and preview contract before database integration.
 
 Acceptance checks:
 
