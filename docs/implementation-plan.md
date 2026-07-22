@@ -265,19 +265,19 @@ Acceptance checks:
 
 ## Phase 15 — SQLite schema and persistence
 
-- [ ] Add the next ordered database migration.
-- [ ] Add `users` table and seed the two initial users.
-- [ ] Add `accounts` table with ownership scope and supported currency constraints.
-- [ ] Add `statements` table with checksum and import metadata.
-- [ ] Add `transactions` table with decimal amount and source-row identity.
-- [ ] Add uniqueness constraints and indexes for transaction lookup.
-- [ ] Add indexes for account, date, currency, direction, fingerprint, and statement.
-- [ ] Add foreign keys between users, accounts, statements, and transactions.
-- [ ] Extend the domain-oriented persistence interface.
-- [ ] Add account and statement persistence operations.
-- [ ] Add transaction persistence and query operations.
-- [ ] Add transaction summary query operations.
-- [ ] Keep SQLite-specific types and SQL inside the database package.
+- [x] Add the next ordered database migration.
+- [x] Add `users` table and seed the two initial users.
+- [x] Add `accounts` table with ownership scope and supported currency constraints.
+- [x] Add `statements` table with checksum and import metadata.
+- [x] Add `transactions` table with decimal amount and source-row identity.
+- [x] Add uniqueness constraints and indexes for transaction lookup.
+- [x] Add indexes for account, date, currency, direction, fingerprint, and statement.
+- [x] Add foreign keys between users, accounts, statements, and transactions.
+- [x] Extend the domain-oriented persistence interface.
+- [x] Add account and statement persistence operations.
+- [x] Add transaction persistence and query operations.
+- [x] Add transaction summary query operations.
+- [x] Keep SQLite-specific types and SQL inside the database package.
 - [ ] Test empty-database migration.
 - [ ] Test ordered and repeatable migrations.
 - [ ] Test decimal round-tripping.
