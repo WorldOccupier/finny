@@ -278,11 +278,11 @@ Acceptance checks:
 - [x] Add transaction persistence and query operations.
 - [x] Add transaction summary query operations.
 - [x] Keep SQLite-specific types and SQL inside the database package.
-- [ ] Test empty-database migration.
-- [ ] Test ordered and repeatable migrations.
-- [ ] Test decimal round-tripping.
-- [ ] Test foreign-key and uniqueness constraints.
-- [ ] Test persistence of individual and joint accounts.
+- [x] Test empty-database migration.
+- [x] Test ordered and repeatable migrations.
+- [x] Test decimal round-tripping.
+- [x] Test foreign-key and uniqueness constraints.
+- [x] Test persistence of individual and joint accounts.
 - [ ] Review checkpoint: approve schema, indexes, constraints, and repository boundaries.
 
 Acceptance checks:

@@ -30,7 +30,9 @@ type Store interface {
 	SaveAccount(context.Context, domain.Account) error
 	ListAccounts(context.Context) ([]domain.Account, error)
 	SaveStatement(context.Context, domain.Statement) error
+	ListStatements(context.Context) ([]domain.Statement, error)
 	SaveTransactions(context.Context, []domain.Transaction) error
+	SaveImport(context.Context, domain.Statement, []domain.Transaction) error
 	ListTransactions(context.Context, string) ([]domain.Transaction, error)
 	SummarizeTransactions(context.Context, string) ([]TransactionSummary, error)
 }

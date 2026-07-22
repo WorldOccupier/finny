@@ -65,6 +65,57 @@ func (s *SQLiteStore) SaveTransactions(ctx context.Context, transactions []domai
 	return tx.Commit()
 }
 
+func (s *SQLiteStore) SaveImport(ctx context.Context, statement domain.Statement, transactions []domain.Transaction) error {
+	if err := statement.Validate(); err != nil {
+		return err
+	}
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	_, err = tx.ExecContext(ctx, `INSERT INTO statements (id, account_id, imported_by, filename, format, checksum, period_start, period_end, status, imported_rows, invalid_rows, duplicate_rows) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, statement.ID, statement.AccountID, statement.ImportedBy, statement.Filename, statement.Format, statement.Checksum, statement.PeriodStart.Format(timeFormat), statement.PeriodEnd.Format(timeFormat), statement.Status, statement.ImportedRows, statement.InvalidRows, statement.DuplicateRows)
+	if err != nil {
+		return err
+	}
+	for _, item := range transactions {
+		if err := item.Validate(); err != nil {
+			return err
+		}
+		_, err = tx.ExecContext(ctx, `INSERT INTO transactions (id, account_id, statement_id, transaction_date, amount, currency, description, reference, source_row, fingerprint) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, item.ID, item.AccountID, item.StatementID, item.Date.Format(timeFormat), item.Amount.String(), item.Currency, item.Description, item.Reference, item.SourceRow, item.Fingerprint)
+		if err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
+}
+
+func (s *SQLiteStore) ListStatements(ctx context.Context) ([]domain.Statement, error) {
+	rows, err := s.db.QueryContext(ctx, `SELECT id, account_id, imported_by, filename, format, checksum, period_start, period_end, status, imported_rows, invalid_rows, duplicate_rows FROM statements ORDER BY period_start, id`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var result []domain.Statement
+	for rows.Next() {
+		var item domain.Statement
+		var start, end string
+		if err := rows.Scan(&item.ID, &item.AccountID, &item.ImportedBy, &item.Filename, &item.Format, &item.Checksum, &start, &end, &item.Status, &item.ImportedRows, &item.InvalidRows, &item.DuplicateRows); err != nil {
+			return nil, err
+		}
+		item.PeriodStart, err = domain.ParseLondonTimestamp(start)
+		if err != nil {
+			return nil, err
+		}
+		item.PeriodEnd, err = domain.ParseLondonTimestamp(end)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, item)
+	}
+	return result, rows.Err()
+}
+
 func (s *SQLiteStore) ListTransactions(ctx context.Context, accountID string) ([]domain.Transaction, error) {
 	rows, err := s.db.QueryContext(ctx, `SELECT id, account_id, statement_id, transaction_date, amount, currency, description, reference, source_row, fingerprint FROM transactions WHERE account_id = ? ORDER BY transaction_date, source_row`, accountID)
 	if err != nil {
